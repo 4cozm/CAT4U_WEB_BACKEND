@@ -1,0 +1,29 @@
+{
+  "name": "cat4u_web",
+  "version": "1.0.0",
+  "description": "A web application for CAT4U",
+  "main": "./pages/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Coding Cats",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "jsdoc": "^4.0.4",
+    "mysql": "^2.18.1",
+    "prettier": "^3.5.2"
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/4cozm/CAT4U_WEB.git"
+  },
+  "keywords": [
+    "cat4u",
+    "web",
+    "application"
+  ]
+}
