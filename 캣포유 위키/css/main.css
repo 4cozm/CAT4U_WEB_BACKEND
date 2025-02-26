@@ -1,0 +1,286 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.main-header {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    background-color: #1a1a1a;
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 1000;
+}
+
+.logo {
+    height: 50px;
+}
+
+.logo a {
+    display: block;
+    height: 100%;
+}
+
+.logo a:hover {
+    opacity: 0.8;
+}
+
+.logo img {
+    height: 50px;
+}
+
+.main-nav {
+    display: flex;
+    align-items: center;
+}
+
+.main-nav ul {
+    display: flex;
+    list-style: none;
+    padding: 0;
+    gap: 1.5rem;
+}
+
+.main-nav li {
+    margin: 0;
+}
+
+.main-nav a {
+    color: white;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.3s ease;
+    white-space: nowrap;
+}
+
+.main-nav a:hover {
+    color: #4CAF50;
+}
+
+.mobile-menu-btn {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    cursor: pointer;
+}
+
+.mobile-menu-btn span {
+    width: 25px;
+    height: 3px;
+    background-color: white;
+}
+
+.main-content {
+    margin-top: 80px;
+    padding: 2rem;
+}
+
+section {
+    min-height: 100vh;
+    padding: 2rem;
+}
+
+@media (max-width: 768px) {
+    .main-nav {
+        display: none;
+    }
+    
+    .main-nav.active {
+        display: block;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        background-color: #1a1a1a;
+        padding: 1rem;
+    }
+    
+    .main-nav ul {
+        flex-direction: column;
+        gap: 0.5rem;
+        padding: 0;
+    }
+    
+    .main-nav li {
+        margin: 0.5rem 0;
+    }
+    
+    .mobile-menu-btn {
+        display: flex;
+    }
+}
+
+.post {
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.post h3 {
+    margin-bottom: 1rem;
+    color: #333;
+}
+
+.post-content {
+    margin-bottom: 1rem;
+    line-height: 1.6;
+}
+
+.post-images {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.post-images img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.post-date {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.welcome-section {
+    text-align: center;
+    padding: 4rem 2rem;
+}
+
+.welcome-section h1 {
+    margin-bottom: 1rem;
+    color: #333;
+}
+
+.page-title {
+    margin-bottom: 2rem;
+    color: #333;
+}
+
+.posts-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+.main-nav a.active {
+    color: #fff;
+    border-bottom: 2px solid #fff;
+}
+
+/* 사이드 메뉴 스타일 */
+.page-container {
+    display: flex;
+    padding-top: 80px;
+}
+
+.side-menu {
+    width: 250px;
+    background-color: #f5f5f5;
+    height: calc(100vh - 80px);
+    position: fixed;
+    top: 80px;
+    padding: 2rem 1rem;
+    overflow-y: auto;
+    transition: transform 0.3s ease;
+}
+
+.side-menu.collapsed {
+    transform: translateX(-220px);
+}
+
+.toggle-menu {
+    position: absolute;
+    right: -30px;
+    top: 20px;
+    width: 30px;
+    height: 30px;
+    background-color: #1a1a1a;
+    color: white;
+    border: none;
+    border-radius: 0 5px 5px 0;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background-color 0.3s;
+}
+
+.toggle-menu:hover {
+    background-color: #333;
+}
+
+.toggle-menu span {
+    transform: rotate(0);
+    transition: transform 0.3s;
+}
+
+.side-menu.collapsed .toggle-menu span {
+    transform: rotate(180deg);
+}
+
+.side-menu h2 {
+    color: #333;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #ddd;
+}
+
+.side-menu ul {
+    list-style: none;
+}
+
+.side-menu li {
+    margin: 0.5rem 0;
+}
+
+.side-menu a {
+    color: #666;
+    text-decoration: none;
+    display: block;
+    padding: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.side-menu a:hover {
+    background-color: #eee;
+    color: #333;
+}
+
+.side-menu a.active {
+    background-color: #1a1a1a;
+    color: white;
+}
+
+.page-content {
+    margin-left: 250px;
+    padding: 2rem;
+    flex: 1;
+}
+
+@media (max-width: 768px) {
+    .side-menu {
+        transform: translateX(-100%);
+    }
+
+    .side-menu.active {
+        transform: translateX(0);
+    }
+
+    .side-menu.collapsed {
+        transform: translateX(-100%);
+    }
+
+    .page-content {
+        margin-left: 0;
+    }
+} 

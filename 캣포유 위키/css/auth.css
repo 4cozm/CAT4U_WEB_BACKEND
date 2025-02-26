@@ -1,0 +1,106 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.auth-container {
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #1a1a1a;
+    position: relative;
+}
+
+.auth-box {
+    background-color: #ffffff;
+    padding: 2rem;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 0 20px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+h1 {
+    margin-bottom: 1rem;
+    color: #333;
+}
+
+p {
+    margin-bottom: 2rem;
+    color: #666;
+}
+
+.eve-button {
+    padding: 1rem 2rem;
+    background-color: #1a1a1a;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.eve-button:hover {
+    background-color: #333;
+}
+
+@media (max-width: 768px) {
+    .auth-box {
+        width: 90%;
+        margin: 0 1rem;
+    }
+}
+
+.auth-logo {
+    width: 200px;
+    margin-bottom: 2rem;
+}
+
+.auth-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+    max-width: 300px;
+}
+
+.auth-btn {
+    padding: 1rem;
+    border: none;
+    border-radius: 5px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.auth-btn:hover {
+    transform: translateY(-2px);
+}
+
+.eve-btn {
+    background-color: #1b2738;
+    color: white;
+}
+
+.temp-login-btn {
+    position: fixed;
+    left: 20px;
+    bottom: 20px;
+    padding: 0.5rem 1rem;
+    background-color: rgba(76, 175, 80, 0.3);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.temp-login-btn:hover {
+    background-color: rgba(76, 175, 80, 0.5);
+} 
