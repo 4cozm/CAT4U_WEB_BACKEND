@@ -2,6 +2,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const createForm = document.getElementById('post-create-form');
     const imagePreview = document.getElementById('image-preview');
     const fileInput = document.getElementById('images');
+    const textarea = document.getElementById("content");
+    const maxLength = 3000;
     
     // 이미지 미리보기 기능
     fileInput.addEventListener('change', (e) => {
@@ -49,7 +51,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // 폼 초기화
         createForm.reset();
         imagePreview.innerHTML = '';
-        alert('게시글이 등록되었습니다.');
+    });
+
+    //글자수 제한한
+    textarea.addEventListener("input", function () {
+        if (textarea.value.length > maxLength) {
+            alert("글자 수는 최대 "+maxLength+"자까지 입력할 수 있습니다.");
+            textarea.value = textarea.value.substring(0, maxLength);
+        }
     });
 });
 
