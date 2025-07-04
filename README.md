@@ -1,4 +1,5 @@
 # 캣포유 웹페이지 프로젝트
+![image](https://github.com/user-attachments/assets/abfb2237-e5b3-46d8-9473-6ccbba1cea79)
 
 이브 온라인 코퍼레이션 내부용 웹페이지를 만드는 중입니다.  
 방학 기간을 활용해 관심 있는 사람들과 함께 배우고, 직접 만들어보는 프로젝트입니다.  
@@ -34,8 +35,9 @@
 | 이름 | 주요 경험 또는 특징 |
 |------|----------------------|
 | cbrt | Python/C++ 경험자, MySQL 경험 있음, 문서 정리 좋아함 |
-| 녹두전 | Python/C++ 알고리즘 경험, 협업은 처음이지만 의욕 있음 |
-| 밥국수 | 보안/리버싱 경험자, CS 이해도 높음, Spring/Next 경험 있음 |
+| shrenwjs | Python/C++ 알고리즘 경험, 협업은 처음이지만 의욕 있음 |
+| pacus KR | 보안/리버싱 경험자, CS 이해도 높음, Spring/Next 경험 있음 |
+| de in | A0 활용하여 React + Tailwind 기반 프론트 엔드 개발, Q&A |
 
 ---
 
