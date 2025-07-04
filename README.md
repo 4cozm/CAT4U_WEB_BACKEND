@@ -1,4 +1,4 @@
-# 캣포유 웹페이지 프로젝트
+# 캣포유 웹페이지 프로젝트 - 영혼 없는 GPT가 작성
 ![image](https://github.com/user-attachments/assets/abfb2237-e5b3-46d8-9473-6ccbba1cea79)
 
 이브 온라인 코퍼레이션 내부용 웹페이지를 만드는 중입니다.  
