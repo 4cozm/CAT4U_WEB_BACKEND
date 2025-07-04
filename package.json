@@ -11,12 +11,17 @@
   "author": "Coding Cats",
   "license": "MIT",
   "dependencies": {
-    "dotenv": "^16.4.7",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^5.1.0",
     "jsdoc": "^4.0.4",
+    "jsonwebtoken": "^9.0.2",
     "mysql": "^2.18.1",
-    "prettier": "^3.5.2"
+    "prettier": "^3.6.2",
+    "redis": "^5.5.6",
+    "uuid": "^11.1.0"
   },
-  "devDependencies": {},
   "repository": {
     "type": "git",
     "url": "https://github.com/4cozm/CAT4U_WEB.git"
@@ -25,5 +30,9 @@
     "cat4u",
     "web",
     "application"
-  ]
+  ],
+  "devDependencies": {
+    "eslint": "^9.30.1",
+    "nodemon": "^3.1.10"
+  }
 }
