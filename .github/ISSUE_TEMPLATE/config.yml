@@ -1,0 +1,26 @@
+blank_issues_enabled: false
+issue_templates:
+  - name: 🧩 Task
+    description: 맡은 기능을 구현할 때 사용하는 기본 작업 이슈
+    labels: [task]
+    file: task.md
+
+  - name: 🐞 Bug
+    description: 발견된 문제나 오류 보고
+    labels: [bug]
+    file: bug.md
+
+  - name: 🧹 Refactoring
+    description: 코드 개선/리팩터링 작업 요청
+    labels: [refactor]
+    file: refactoring.md
+
+  - name: ✨ Feature Suggestion
+    description: 기능 추가/개선 아이디어 제안
+    labels: [enhancement]
+    file: feature_suggestion.md
+
+  - name: 📄 Documentation
+    description: 문서 작성/수정 관련 작업
+    labels: [documentation]
+    file: documentation.md
