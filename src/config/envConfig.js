@@ -43,9 +43,9 @@ export const importVaultSecrets = async () => {
         process.exit(1);
     }
     if (isDev === true) {
-        console.log('🖥️  개발 환경으로 환경변수를 로드 합니다.');
+        console.log('🖥️  개발 환경으로 실행.');
     } else if (isDev === false) {
-        console.log('👀  프로덕트 환경변수를 로드 합니다. 진짜에요???');
+        console.log('👀  프로덕트 환경으로 실행. 진짜에요???');
     }
     const spinner = ora({
         text: getRandomLoadingMessage(),
