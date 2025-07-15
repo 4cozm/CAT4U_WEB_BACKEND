@@ -1,9 +1,9 @@
 //Azure key vault에서 필요한 환경변수(비밀)을 불러옵니다
 import { DefaultAzureCredential } from '@azure/identity';
 import { SecretClient } from '@azure/keyvault-secrets';
-import { getRandomLoadingMessage } from '../utils/getRandomLoadingMessage.js';
 import env from 'dotenv';
 import ora from 'ora';
+import { getRandomLoadingMessage } from '../utils/getRandomLoadingMessage.js';
 env.config();
 
 const url = 'https://cat4u-vault.vault.azure.net/';
@@ -11,7 +11,15 @@ const credential = new DefaultAzureCredential();
 const client = new SecretClient(url, credential);
 const isDev = process.env.isDev === 'true';
 
-const secretNames = ['ESI-CLIENT-ID', 'ESI-CLIENT-SECRET', 'ESI-CALLBACK-URL', 'ESI-SCOPE'];
+//새로운 키는 여기에 추가하시면 됩니다 DEV-XXX 유형은 입력하지 않아도 됩니다.
+const secretNames = [
+    'ESI-CLIENT-ID',
+    'ESI-CLIENT-SECRET',
+    'ESI-CALLBACK-URL',
+    'ESI-SCOPE',
+    'MYSQL-IP',
+    'MYSQL-PASSWORD',
+];
 
 const loadSecretsFromVault = async (useDevPrefix = false) => {
     for (const name of secretNames) {
@@ -37,7 +45,7 @@ export const importVaultSecrets = async () => {
     if (isDev === true) {
         console.log('🖥️  개발 환경으로 환경변수를 로드 합니다.');
     } else if (isDev === false) {
-        console.log('👀  프로덕트 환경변수를 로드 합니다.');
+        console.log('👀  프로덕트 환경변수를 로드 합니다. 진짜에요???');
     }
     const spinner = ora({
         text: getRandomLoadingMessage(),
