@@ -2,7 +2,7 @@ import { existsSync, mkdirSync } from 'fs';
 import winston from 'winston';
 
 // TODO: Azure Key Vault 연동 후 NODE_ENV 동적으로 세팅
-const isProd = process.env.NODE_ENV === 'production';
+const isProd = process.env.isDev;
 
 let logger;
 
@@ -15,7 +15,9 @@ if (!isProd) {
         debug: (...args) => console.debug('[DEBUG]', ...args),
     };
 } else {
-    if (!existsSync('logs')) {mkdirSync('logs');}
+    if (!existsSync('logs')) {
+        mkdirSync('logs');
+    }
 
     const customFormat = winston.format.printf(({ level, message, timestamp }) => {
         return `[${timestamp}] ${level.toUpperCase()}: ${message}`;
