@@ -19,6 +19,7 @@ const secretNames = [
     'ESI-SCOPE',
     'MYSQL-IP',
     'MYSQL-PASSWORD',
+    'DISCORD-WEBHOOK',
 ];
 
 const loadSecretsFromVault = async (useDevPrefix = false) => {
@@ -29,7 +30,9 @@ const loadSecretsFromVault = async (useDevPrefix = false) => {
             const envKey = name.replace(/-/g, '_');
             process.env[envKey] = secret.value;
         } catch (err) {
-            console.error(`${keyVaultName} 로드 실패: ${err.message}`);
+            console.error(
+                `\n\x1b[31m개발환경?:${isDev}\x1b[0m , ${keyVaultName} 로드 실패 \n ${err.message}`
+            );
             process.exit(1);
         }
     }
