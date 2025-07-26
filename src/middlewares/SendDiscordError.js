@@ -5,14 +5,14 @@ const hook = new Webhook(process.env.discord_URL); // Discord Webhook URL을 환
 
 console.log('Discord client const complete'); // 클라이언트 생성 로그 출력
 
-async function sendMessage() {
+async function sendMessage(Description) {
     const embed = new MessageBuilder() // 메시지 빌더 생성
-        .setColor('#0000ff') // 임베드 메시지 색상 설정
-        .setTitle('TEST!') // 임베드 메시지 제목 설정
-        .setDescription('Embed Message Test') // 임베드 메시지 설명 설정
-        .setTimestamp(); // 임베드 메시지에 타임스탬프 추가
+        .setColor('#ff0000ff') // 임베드 메시지 색상 설정
+        .setTitle('Alert') // 임베드 메시지 제목 설정
+        .setDescription(Description) // 임베드 메시지 설명 설정
+        .setTimestamp(new Date()); // 임베드 메시지에 타임스탬프 추가
 
     await hook.send(embed); // 임베드 메시지 전송
 }
 
-sendMessage(); // 메시지 전송 함수 호출
+export default sendMessage; // sendMessage 함수를 모듈로 내보내기
