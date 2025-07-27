@@ -1,8 +1,12 @@
 import { existsSync, mkdirSync } from 'fs';
 import winston from 'winston';
+import winstonDaily from 'winston-daily-rotate-file';
+import sendMessage from './SendDiscordMsg.js';
 
 // TODO: Azure Key Vault 연동 후 NODE_ENV 동적으로 세팅
 const isProd = process.env.NODE_ENV === 'production';
+
+const log_dir = `${process.cwd()}/logs`; // 로그 폴더 경로 설정
 
 let logger;
 
@@ -15,28 +19,38 @@ if (!isProd) {
         debug: (...args) => console.debug('[DEBUG]', ...args),
     };
 } else {
-    if (!existsSync('logs')) {mkdirSync('logs');}
+    if (!existsSync('logs')) {
+        mkdirSync('logs');
+    }
 
-    const customFormat = winston.format.printf(({ level, message, timestamp }) => {
-        return `[${timestamp}] ${level.toUpperCase()}: ${message}`;
-    });
+    const log_format = winston.format.printf(({ level, message, label, timestamp }) => {
+        return `${timestamp} [${label}] ${level}: ${message}`;
+    }); // 로그 출력 형태 설정
 
     logger = winston.createLogger({
         level: 'info',
-        format: winston.format.combine(winston.format.timestamp(), customFormat),
-        transports: [
-            new winston.transports.File({
-                filename: 'logs/combined.log',
-                maxsize: 5 * 1024 * 1024,
-                maxFiles: 5,
-                tailable: true,
+        format: winston.format.combine(
+            winston.format.timestamp({
+                format: 'YYYY-MM-DD HH:mm:ss',
             }),
-            new winston.transports.File({
-                filename: 'logs/error.log',
+            log_format
+        ),
+        transports: [
+            new winstonDaily({
+                level: 'info',
+                datePattern: 'YYYY-MM-DD',
+                dirname: log_dir,
+                filename: '%DATE%.log',
+                maxSize: 5 * 1024 * 1024,
+                maxFiles: 5,
+            }),
+            new winstonDaily({
                 level: 'error',
-                maxsize: 5 * 1024 * 1024,
+                datePattern: 'YYYY-MM-DD',
+                dirname: log_dir,
+                filename: '%DATE%.error.log',
+                maxSize: 5 * 1024 * 1024,
                 maxFiles: 3,
-                tailable: true,
             }),
         ],
     });
@@ -45,7 +59,7 @@ if (!isProd) {
     const originalError = logger.error.bind(logger);
     logger.error = async (...args) => {
         const message = args.join(' ');
-        // await sendDiscordError(message);
+        await sendMessage(message);
         originalError(message);
     };
 }
