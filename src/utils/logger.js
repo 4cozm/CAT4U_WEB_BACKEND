@@ -9,8 +9,19 @@ const isProd = process.env.NODE_ENV === 'production';
 const log_dir = `${process.cwd()}/logs`; // 로그 폴더 경로 설정
 
 let logger;
+let discordUrl = null;
 
-if (!isProd) {
+export const setDiscordHook = async () => {
+    discordUrl = process.env.DISCORD_WEBHOOK;
+    console.log('Discord Webhook URL:', discordUrl);
+    if (!discordUrl) {
+        console.error('Discord Webhook URL Not Imported!');
+        process.exit(0);
+    }
+};
+
+if (isProd) {
+    // 테스트를 위해 !isProd to isProd로 변경
     // 개발 환경일 때 콘솔로그만 출력
     logger = {
         info: (...args) => console.log('[INFO]', ...args),
@@ -59,7 +70,7 @@ if (!isProd) {
     const originalError = logger.error.bind(logger);
     logger.error = async (...args) => {
         const message = args.join(' ');
-        await sendMessage(message);
+        await sendMessage(discordUrl, undefined, message);
         originalError(message);
     };
 }
