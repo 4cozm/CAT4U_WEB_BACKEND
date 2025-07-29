@@ -13,14 +13,13 @@ let discordUrl = null;
 
 export const setDiscordHook = async () => {
     discordUrl = process.env.DISCORD_WEBHOOK;
-    console.log('Discord Webhook URL:', discordUrl);
     if (!discordUrl) {
         console.error('Discord Webhook URL Not Imported!');
         process.exit(0);
     }
 };
 
-if (isProd) {
+if (!isProd) {
     // 테스트를 위해 !isProd to isProd로 변경
     // 개발 환경일 때 콘솔로그만 출력
     logger = {
@@ -34,8 +33,8 @@ if (isProd) {
         mkdirSync('logs');
     }
 
-    const log_format = winston.format.printf(({ level, message, label, timestamp }) => {
-        return `${timestamp} [${label}] ${level}: ${message}`;
+    const log_format = winston.format.printf(({ level, message, timestamp }) => {
+        return `${timestamp} ${level}: ${message}`;
     }); // 로그 출력 형태 설정
 
     logger = winston.createLogger({
@@ -66,7 +65,6 @@ if (isProd) {
         ],
     });
 
-    // TODO: Discord Webhook 연동 예정
     const originalError = logger.error.bind(logger);
     logger.error = async (...args) => {
         const message = args.join(' ');
