@@ -1,2 +1,3 @@
 # 모든 텍스트 파일을 CRLF로 강제
 * text eol=crlf
+package-lock.json merge=ours
