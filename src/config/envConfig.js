@@ -6,10 +6,12 @@ import ora from 'ora';
 import { getRandomLoadingMessage } from '../utils/getRandomLoadingMessage.js';
 env.config();
 
-const url = 'https://cat4u-vault.vault.azure.net/';
 const credential = new DefaultAzureCredential();
-const client = new SecretClient(url, credential);
 const isDev = process.env.isDev === 'true';
+const url = isDev
+    ? 'https://cat4u-vault.vault.azure.net/'
+    : 'https://cat4u-web-product.vault.azure.net/';
+const client = new SecretClient(url, credential);
 
 //새로운 키는 여기에 추가하시면 됩니다 DEV-XXX 유형은 입력하지 않아도 됩니다.
 const secretNames = [
@@ -20,6 +22,8 @@ const secretNames = [
     'MYSQL-IP',
     'MYSQL-PASSWORD',
     'DISCORD-WEBHOOK',
+    'WEB-ARTIFACT-TOKEN', //깃허브 웹 아티펙트 파일에 접근하기 위한 권한
+    'ARTIFACT-API-KEY', //웹 아티펙트 업데이트 요청 받을때 검증하기 위한 값
 ];
 
 const loadSecretsFromVault = async (useDevPrefix = false) => {
