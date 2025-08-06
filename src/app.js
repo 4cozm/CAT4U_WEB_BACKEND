@@ -9,14 +9,13 @@ const frontendPath = path.join(__dirname, 'public', 'frontend');
 
 export async function createApp() {
     const app = express();
-
-    app.use(express.json());
-    app.use(express.urlencoded({ extended: true }));
-    app.use('/api', router);
-    app.use(express.static(frontendPath));
-
     const sessionMiddleware = await createSessionMiddleware(); // express와 한몸이라 순서를 명확하게 하기 위해 여기에 작성함
     app.use(sessionMiddleware);
 
+    app.use(express.json());
+    app.use(express.urlencoded({ extended: true }));
+    app.use(express.static(frontendPath));
+
+    app.use('/api', router);
     return app;
 }
