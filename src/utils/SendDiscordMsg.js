@@ -1,4 +1,5 @@
 import { MessageBuilder, Webhook } from 'discord-webhook-node'; // Discord Webhook과 MessageBuilder 모듈 불러오기
+import ora from 'ora';
 import path from 'path';
 import { logger } from './logger.js';
 
@@ -7,14 +8,22 @@ let hook; //전역으로 만들어서 재활용 가능하도록
 
 //setDiscordHook 웹후크 URL 쓰는곳이 여기밖에 없어서 여기서 URL초기화도 맡으면 좋음
 export const setDiscordHook = async () => {
-    discordUrl = process.env.DISCORD_WEBHOOK;
-    if (!discordUrl) {
-        console.error('디스코드 웹 후크 주소가 로드되지 않았습니다. 시스템을 종료합니다');
-        process.exit(0);
-    }
+    const spinner = ora('디스코드 웹후크 초기화 중...').start();
 
-    hook = new Webhook(discordUrl); //겸사겸사 임베드 클라이언트도 설정
-    console.log('디스코드 웹후크로 임베드 메세지 발송 준비 완료');
+    try {
+        discordUrl = process.env.DISCORD_WEBHOOK;
+
+        if (!discordUrl) {
+            spinner.fail('디스코드 웹 후크 주소가 로드되지 않았습니다. 시스템을 종료합니다.');
+            process.exit(1);
+        }
+
+        hook = new Webhook(discordUrl); // 임베드 클라이언트 설정
+        spinner.succeed('디스코드 웹후크로 임베드 메시지 발송 준비 완료');
+    } catch (error) {
+        spinner.fail(`웹후크 초기화 실패: ${error.message}`);
+        process.exit(1);
+    }
 };
 
 /**
