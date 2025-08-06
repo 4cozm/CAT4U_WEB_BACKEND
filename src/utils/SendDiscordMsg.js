@@ -49,31 +49,24 @@ export default async function SendDiscordMsg(
     Description,
     { Title = '알림', Url, Image, Color = 'red' }
 ) {
-    //옵션 값들은 깔끔하게 분리
+    const colorHex = COLOR_MAP[Color.toLowerCase()] || Color;
+    const stack = new Error().stack.split('\n');
+    const callerLine = stack[2] || stack[1];
+    const callerPath = callerLine.match(/\((.*):\d+:\d+\)/)?.[1] || 'unknown';
+    const callerFile = path.basename(callerPath);
 
-    const colorHex = COLOR_MAP[Color.toLowerCase()] || Color; // 아래에 정의된 색상에서 가져다 쓰게, 아래에 없다면 입력받은 HEX코드 그대로 사용
     const embed = new MessageBuilder()
         .setColor(colorHex)
         .setTitle(Title)
-        .setDescription(Description)
+        .setDescription(`${Description}\n\n(호출된 함수: ${callerFile})`)
         .setURL(Url)
         .setImage(Image)
         .setTimestamp();
 
     try {
         await hook.send(embed);
-
-        // 호출자 파일명 추적 GPT한테 물어보면 나옴 내용을 자세히 알 필요는 없음.
-        // "어디서" 불렀는지 알면 오류 추적할때 도움이 됨
-        // 로그 찍을때 애매하게 해둔 "정보가 일치하지 않습니다" 이따구로 해둔 로깅도 위치 찾을 수 있음
-        const stack = new Error().stack.split('\n');
-        const callerLine = stack[2] || stack[1]; // 호출한 파일이 보통 2번째 라인에 위치
-        const callerPath = callerLine.match(/\((.*):\d+:\d+\)/)?.[1] || 'unknown';
-        const callerFile = path.basename(callerPath);
-
-        logger.info(`E번방 디스코드로 메세지 전송 완료! (호출된 함수: ${callerFile})`);
     } catch (err) {
-        logger.error(err.message);
+        logger().error(err.message);
     }
 }
 
