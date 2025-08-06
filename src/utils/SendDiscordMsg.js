@@ -13,7 +13,7 @@ export const setDiscordHook = async () => {
         process.exit(0);
     }
 
-    hook = new Webhook(hook); //겸사겸사 임베드 클라이언트도 설정
+    hook = new Webhook(discordUrl); //겸사겸사 임베드 클라이언트도 설정
     console.log('디스코드 웹후크로 임베드 메세지 발송 준비 완료');
 };
 
