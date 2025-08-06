@@ -1,6 +1,6 @@
 import { MessageBuilder, Webhook } from 'discord-webhook-node'; // Discord Webhook과 MessageBuilder 모듈 불러오기
 import ora from 'ora';
-import path from 'path';
+import getCallerName from './getCallerName.js';
 import { logger } from './logger.js';
 
 let discordUrl; //전역으로 만들어서 재활용 가능하도록
@@ -50,15 +50,12 @@ export default async function SendDiscordMsg(
     { Title = '알림', Url, Image, Color = 'red' }
 ) {
     const colorHex = COLOR_MAP[Color.toLowerCase()] || Color;
-    const stack = new Error().stack.split('\n');
-    const callerLine = stack[2] || stack[1];
-    const callerPath = callerLine.match(/\((.*):\d+:\d+\)/)?.[1] || 'unknown';
-    const callerFile = path.basename(callerPath);
+    const caller = getCallerName();
 
     const embed = new MessageBuilder()
         .setColor(colorHex)
         .setTitle(Title)
-        .setDescription(`${Description}\n\n(호출된 함수: ${callerFile})`)
+        .setDescription(`${Description}\n\n(호출된 함수: ${caller})`)
         .setURL(Url)
         .setImage(Image)
         .setTimestamp();
