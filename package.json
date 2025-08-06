@@ -10,15 +10,18 @@
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
         "format": "prettier --write .",
-        "prepare": "husky install"
+        "prepare": "husky install",
+        "postinstall": "prisma generate"
     },
     "author": "Coding Cats",
     "license": "MIT",
     "dependencies": {
         "@azure/identity": "^4.10.2",
         "@azure/keyvault-secrets": "^4.10.0",
+        "@prisma/client": "^6.13.0",
         "axios": "^1.11.0",
         "bcrypt": "^6.0.0",
+        "connect-redis": "^9.0.0",
         "cors": "^2.8.5",
         "discord-webhook-node": "^1.1.8",
         "discord.js": "^14.21.0",
@@ -29,7 +32,7 @@
         "mysql2": "^3.14.2",
         "ora": "^8.2.0",
         "prettier": "^3.6.2",
-        "redis": "^5.5.6",
+        "redis": "^5.8.0",
         "unzipper": "^0.12.3",
         "uuid": "^11.1.0",
         "winston": "^3.17.0",
@@ -50,7 +53,8 @@
         "eslint-plugin-prettier": "^5.5.1",
         "husky": "^9.1.7",
         "lint-staged": "^16.1.2",
-        "nodemon": "^3.1.10"
+        "nodemon": "^3.1.10",
+        "prisma": "^6.13.0"
     },
     "lint-staged": {
         "**/*.{js,jsx,ts,tsx}": [

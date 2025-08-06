@@ -39,7 +39,7 @@ export function findLatestArtifact(artifacts) {
 }
 
 export async function deployFrontendOnStartup() {
-    const spinner = ora('최신 아티팩트 다운로드 준비 중...').start();
+    const spinner = ora('새 버전 발견! 최신 아티팩트 다운로드 중...').start();
 
     try {
         const artifacts = await getAllArtifacts(OWNER, REPO, process.env.WEB_ARTIFACT_TOKEN);
@@ -47,7 +47,7 @@ export async function deployFrontendOnStartup() {
 
         if (isFrontendUpToDate(latest.name)) {
             spinner.succeed(
-                `프론트 아티펙트가 이미 최신입니다!  버전:${formatArtifactTimestamp(latest.name)} 업데이트는 건너뛸게요🐰`,
+                `프론트 아티팩트가 이미 최신입니다!  버전:${formatArtifactTimestamp(latest.name)} 업데이트는 건너뛸게요🐰`,
                 latest.name
             );
             return null;
@@ -182,7 +182,6 @@ export function isFrontendUpToDate(latestName) {
         if (savedName === latestName) {
             return true;
         } else {
-            console.log(`프론트엔드 업데이트 필요. (저장된: ${savedName}, 최신: ${latestName})`);
             return false;
         }
     } catch (error) {

@@ -7,6 +7,9 @@ yarn-error.log
 logs/
 *.log
 
+# Prisma
+
+
 # Runtime data
 pids/
 *.pid
@@ -119,3 +122,4 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+/src/generated/prisma

@@ -60,7 +60,9 @@ export const connectWithRetry = async (shutdown = false, retries = 3, delay = 20
  */
 export const query = async (sql, params) => {
     try {
-        if (!pool) {throw new Error('MySQL 연결되지 않음');}
+        if (!pool) {
+            throw new Error('MySQL 연결되지 않음');
+        }
         return await pool.query(sql, params);
     } catch (err) {
         // 연결 관련 에러일 경우만 재시도

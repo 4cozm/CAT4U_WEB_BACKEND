@@ -1,10 +1,4 @@
 # models
 
-이 디렉토리는 데이터베이스 모델 정의 파일들을 포함합니다.
-
-## 포함되는 파일 예시
-- 사용자 모델 (`user.js`)
-- 게시글 모델 (`post.js`)
-
-## 목적
-ORM 또는 쿼리 빌더를 사용하여 데이터베이스 테이블과 매핑되는 구조를 정의합니다.
+MVC 패턴으로 Prisma를 사용하게 되었으므로, 여기에는 초기 docker compose 용 initScheme만 들어갑니다
+Scheme 수정은 ~/prisma/scheme.prisma 로 가시면 됩니다
