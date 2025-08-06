@@ -24,6 +24,7 @@ const secretNames = [
     'DISCORD-WEBHOOK',
     'WEB-ARTIFACT-TOKEN', //깃허브 웹 아티펙트 파일에 접근하기 위한 권한
     'ARTIFACT-API-KEY', //웹 아티펙트 업데이트 요청 받을때 검증하기 위한 값
+    'REDIS-SESSION-SECRET', //redis 세션 보안을 위한 키
 ];
 
 const loadSecretsFromVault = async (useDevPrefix = false) => {
