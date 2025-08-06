@@ -2,13 +2,13 @@ import { MessageBuilder, Webhook } from 'discord-webhook-node'; // Discord Webho
 import path from 'path';
 import { logger } from './logger.js';
 
-let discordUrlEx; //전역으로 만들어서 재활용 가능하도록
+let discordUrl; //전역으로 만들어서 재활용 가능하도록
 let hook; //전역으로 만들어서 재활용 가능하도록
 
 //setDiscordHook 웹후크 URL 쓰는곳이 여기밖에 없어서 여기서 URL초기화도 맡으면 좋음
 export const setDiscordHook = async () => {
-    discordUrlEx = process.env.DISCORD_WEBHOOK;
-    if (!discordUrlEx) {
+    discordUrl = process.env.DISCORD_WEBHOOK;
+    if (!discordUrl) {
         console.error('디스코드 웹 후크 주소가 로드되지 않았습니다. 시스템을 종료합니다');
         process.exit(0);
     }
