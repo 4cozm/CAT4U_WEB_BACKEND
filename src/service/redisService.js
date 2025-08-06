@@ -20,10 +20,6 @@ export async function initRedis() {
             logger().warn('Redis 재연결 시도 중...');
         });
 
-        redisClient.on('ready', () => {
-            logger().info('Redis 클라이언트가 준비되었습니다.');
-        });
-
         await redisClient.connect();
 
         spinner.succeed('Redis 연결 성공');
