@@ -1,6 +1,6 @@
 import { MessageBuilder, Webhook } from 'discord-webhook-node'; // Discord Webhook과 MessageBuilder 모듈 불러오기
 import path from 'path';
-import logger from 'winston';
+import { logger } from './logger.js';
 
 let discordUrlEx; //전역으로 만들어서 재활용 가능하도록
 let hook; //전역으로 만들어서 재활용 가능하도록
@@ -14,7 +14,7 @@ export const setDiscordHook = async () => {
     }
 
     hook = new Webhook(hook); //겸사겸사 임베드 클라이언트도 설정
-    logger.info('디스코드 웹후크로 임베드 메세지 발송 준비 완료');
+    console.log('디스코드 웹후크로 임베드 메세지 발송 준비 완료');
 };
 
 /**
