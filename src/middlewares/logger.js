@@ -1,9 +1,9 @@
+import process from 'process'; // 프로세스 모듈 불러오기
 import winston from 'winston'; // 로그 모듈 불러오기
 import winstonDaily from 'winston-daily-rotate-file'; // 로그 파일을 날짜별로 분리하기 위한 모듈 불러오기
 import sendMessage from './SendDiscordError.js'; // Discord 메시지 전송 모듈 불러오기
-import process from 'process'; // 프로세스 모듈 불러오기
 
-const { combine, timestamp, label, printf } = winston.format; // format winston
+const { printf } = winston.format; // format winston
 
 const log_dir = `${process.cwd()}/src/middlewares/logs`; // 로그 폴더 경로 설정
 
