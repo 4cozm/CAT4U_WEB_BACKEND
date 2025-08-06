@@ -3,18 +3,19 @@ import jwt from 'jsonwebtoken';
 import { processCallback } from '../service/eveAuth.service.js';
 
 env.config();
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 /**
  * EVE 로그인 페이지로 리디렉션하는 컨트롤러
  */
 export function redirectToEveLogin(req, res) {
-    const { CLIENT_ID, REDIRECT_URI } = process.env;
+    const clientId = process.env.CLIENT_ID;
+    const redirectUrl = process.env.REDIRECT_URI;
     const scope = process.env.ESI_SCOPE;
 
     const authorizeUrl = `https://login.eveonline.com/v2/oauth/authorize?response_type=code&redirect_uri=${encodeURIComponent(
-        REDIRECT_URI
-    )}&client_id=${CLIENT_ID}&scope=${scope}`;
+        redirectUrl
+    )}&client_id=${clientId}&scope=${scope}`;
 
     res.redirect(authorizeUrl);
 }
