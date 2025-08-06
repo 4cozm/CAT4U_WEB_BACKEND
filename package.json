@@ -20,18 +20,20 @@
         "axios": "^1.11.0",
         "bcrypt": "^6.0.0",
         "cors": "^2.8.5",
+        "discord-webhook-node": "^1.1.8",
+        "discord.js": "^14.21.0",
         "dotenv": "^16.6.1",
         "express": "^5.1.0",
         "jsdoc": "^4.0.4",
         "jsonwebtoken": "^9.0.2",
-        "mysql": "^2.18.1",
-        "mysql2": "^3.14.3",
+        "mysql2": "^3.14.2",
         "ora": "^8.2.0",
         "prettier": "^3.6.2",
         "redis": "^5.8.0",
         "unzipper": "^0.12.3",
         "uuid": "^11.1.0",
-        "winston": "^3.17.0"
+        "winston": "^3.17.0",
+        "winston-daily-rotate-file": "^5.0.0"
     },
     "repository": {
         "type": "git",
@@ -43,7 +45,7 @@
         "application"
     ],
     "devDependencies": {
-        "eslint": "^9.30.1",
+        "eslint": "^9.32.0",
         "eslint-config-prettier": "^10.1.5",
         "eslint-plugin-prettier": "^5.5.1",
         "husky": "^9.1.7",
