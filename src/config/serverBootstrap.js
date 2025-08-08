@@ -2,12 +2,14 @@
 import { deployFrontendOnStartup } from '../service/githubArtifactService.js';
 import { connectWithRetry } from '../service/mySqlService.js';
 import { initRedis } from '../service/redisService.js';
+import { ensureEnvWithDefaults } from '../utils/envFile.js';
 import { setDiscordHook } from '../utils/SendDiscordMsg.js';
 import { importVaultSecrets } from './envConfig.js';
 
 export default async function initializeServer() {
     try {
         await importVaultSecrets(); // Azure Key Vault 로드
+        await ensureEnvWithDefaults(); //env 자동 설정
         await setDiscordHook(); // Discord Hook 초기화
         await connectWithRetry(true); // MySQL 연결
         await initRedis(); //redis 연결
