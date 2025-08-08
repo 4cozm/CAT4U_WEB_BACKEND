@@ -1,8 +1,11 @@
 import axios from 'axios';
 import fs from 'fs';
+import { stdin as input, stdout as output } from 'node:process';
 import ora from 'ora';
 import path from 'path';
+import readline from 'readline/promises';
 import unzipper from 'unzipper';
+import { upsertEnvVar } from '../utils/envFile.js';
 
 const OWNER = '4cozm';
 const REPO = 'CAT4U_WEB_FRONTEND';
@@ -27,33 +30,80 @@ export async function getAllArtifacts(owner, repo, token) {
 }
 
 /**
- * 가장 최신 아티팩트를 반환합니다.
+ * 현재 환경에 맞는 가장 최신 아티팩트를 반환합니다.
  * @param {Array} artifacts - 아티팩트 배열
  * @returns {Object|null} 최신 아티팩트 객체
  */
 export function findLatestArtifact(artifacts) {
-    if (!artifacts.length) {
+    if (!Array.isArray(artifacts) || artifacts.length === 0) {
         return null;
     }
-    return artifacts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+
+    const prefix = process.env.isDev === 'true' ? 'dev' : 'main';
+
+    // prefix로 필터링
+    const filtered = artifacts.filter(a => a.name && a.name.startsWith(prefix));
+
+    if (filtered.length === 0) {
+        return null; // 해당 브랜치용 아티팩트 없음
+    }
+
+    // 최신순 정렬 후 첫 번째 반환
+    return filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
 }
 
 export async function deployFrontendOnStartup() {
-    const spinner = ora('새 버전 발견! 최신 아티팩트 다운로드 중...').start();
-
     try {
         const artifacts = await getAllArtifacts(OWNER, REPO, process.env.WEB_ARTIFACT_TOKEN);
-        const latest = findLatestArtifact(artifacts);
-
-        if (isFrontendUpToDate(latest.name)) {
-            spinner.succeed(
-                `프론트 아티팩트가 이미 최신입니다!  버전:${formatArtifactTimestamp(latest.name)} 업데이트는 건너뛸게요🐰`,
-                latest.name
-            );
+        if (!artifacts.length) {
+            console.warn('아티팩트 리스트가 비어있습니다.');
             return null;
         }
 
-        const zipPath = await downloadArtifact(latest);
+        let targetArtifact;
+        const changeMode = process.env.changeArtifactMode === 'true';
+
+        if (changeMode) {
+            // 수동 선택 모드
+            targetArtifact = await pickArtifactFromList(artifacts);
+            if (!targetArtifact) {
+                console.log('선택이 취소되었습니다.');
+                return null;
+            }
+        } else {
+            // 최신 버전 자동 선택
+            const latest = findLatestArtifact(artifacts);
+            if (!latest) {
+                console.warn('아티팩트를 찾을 수 없습니다.');
+                return null;
+            }
+
+            if (isFrontendUpToDate(latest.name)) {
+                console.log(
+                    `프론트 아티팩트가 이미 최신입니다!  버전:${formatArtifactTimestamp(latest.name)} 업데이트는 건너뛸게요🐰`
+                );
+                return null;
+            }
+
+            // Dev 환경이면 다운로드 전 확인
+            const isDev = process.env.isDev === 'true';
+            if (isDev) {
+                const proceed = await confirm(
+                    `🍕 Dev 모드: 최신 아티팩트(${latest.name})를 다운로드 및 배포할까요? 3초 뒤 자동 건너뜀`,
+                    { defaultYes: false }
+                );
+                if (!proceed) {
+                    console.log('🥲 개발환경: 사용자 입력으로 인해 다운로드/배포를 취소합니다.');
+                    return null;
+                }
+            }
+
+            targetArtifact = latest;
+        }
+
+        // 다운로드 & 배포
+        const spinner = ora(`아티팩트 다운로드 중... (${targetArtifact.name})`).start();
+        const zipPath = await downloadArtifact(targetArtifact);
         if (!zipPath) {
             spinner.fail('ZIP 다운로드 실패');
             return null;
@@ -64,13 +114,14 @@ export async function deployFrontendOnStartup() {
             spinner.fail('압축 해제 실패');
             return null;
         }
-        saveFrontendVersion(latest.name);
+
+        saveFrontendVersion(targetArtifact.name);
         spinner.succeed(
-            '최신 아티팩트 다운로드 및 배포 완료 :' + formatArtifactTimestamp(latest.name)
+            `아티팩트 다운로드 및 배포 완료: ${formatArtifactTimestamp(targetArtifact.name)}`
         );
         return true;
     } catch (e) {
-        spinner.fail('서버 시작 중 아티팩트 다운로드 실패');
+        ora().fail('서버 시작 중 아티팩트 다운로드 실패');
         console.error(e.message);
         return null;
     }
@@ -87,7 +138,7 @@ export async function downloadArtifact(latest) {
             spinner.fail('❌ 최신 아티팩트가 존재하지 않습니다.');
             return null;
         }
-        spinner.text = `📦 최신 아티팩트 다운로드 중: ${latest.name}`;
+        spinner.text = `📦 아티팩트 다운로드 중: ${latest.name}`;
         const zipUrl = `https://api.github.com/repos/${OWNER}/${REPO}/actions/artifacts/${latest.id}/zip`;
         const response = await axios.get(zipUrl, {
             headers: {
@@ -107,6 +158,7 @@ export async function downloadArtifact(latest) {
         });
 
         spinner.succeed('ZIP 파일 다운로드 완료');
+        await upsertEnvVar('changeArtifactMode', false);
         return zipPath;
     } catch (error) {
         spinner.fail('아티팩트 ZIP 다운로드 실패');
@@ -209,4 +261,52 @@ export function formatArtifactTimestamp(artifactName) {
     const displayHour = hourNum % 12 === 0 ? 12 : hourNum % 12;
 
     return `${year}년 ${parseInt(month, 10)}월 ${parseInt(day, 10)}일 ${isPM ? '오후' : '오전'} ${displayHour}시 ${minute}분 ${second}초`;
+}
+
+async function confirm(question, { defaultYes = false, timeoutMs = 3000 } = {}) {
+    // CI나 비-TTY 터미널이면 질문하지 않음
+    if (process.env.CI === 'true' || !output.isTTY) {
+        return defaultYes;
+    }
+
+    const rl = readline.createInterface({ input, output });
+    const suffix = defaultYes ? ' [Y/n] ' : ' [y/N] ';
+    const q = `${question}${suffix}`;
+
+    try {
+        const answerPromise = rl.question(q);
+        const timer = new Promise(resolve =>
+            setTimeout(() => resolve(defaultYes ? 'y' : 'n'), timeoutMs)
+        );
+
+        const answerRaw = await Promise.race([answerPromise, timer]);
+        const answer = String(answerRaw || '')
+            .trim()
+            .toLowerCase();
+
+        return answer === 'y' || answer === 'yes';
+    } finally {
+        rl.close();
+        output.write('\n');
+    }
+}
+
+// 아티팩트 목록 선택 메서드
+async function pickArtifactFromList(artifacts) {
+    console.log('\n=== 다운로드할 아티팩트를 선택하세요 ===');
+    artifacts.forEach((a, i) => {
+        const created = new Date(a.created_at).toISOString().replace('T', ' ').slice(0, 19);
+        console.log(`[${i}] ${a.name}  •  created: ${created}`);
+    });
+    const rl = readline.createInterface({ input, output });
+    try {
+        const answer = await rl.question('인덱스 입력 (취소: 엔터): ');
+        const idx = Number(answer);
+        if (!answer || Number.isNaN(idx) || idx < 0 || idx >= artifacts.length) {
+            return null;
+        }
+        return artifacts[idx];
+    } finally {
+        rl.close();
+    }
 }
