@@ -8,8 +8,8 @@ import { importVaultSecrets } from './envConfig.js';
 
 export default async function initializeServer() {
     try {
-        await importVaultSecrets(); // Azure Key Vault 로드
         await ensureEnvWithDefaults(); //env 자동 설정
+        await importVaultSecrets(); // Azure Key Vault 로드
         await setDiscordHook(); // Discord Hook 초기화
         await connectWithRetry(true); // MySQL 연결
         await initRedis(); //redis 연결
