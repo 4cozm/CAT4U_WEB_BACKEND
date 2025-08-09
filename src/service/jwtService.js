@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 
-export function createJwt(characterId, nickname, roles, accessToken) {
+export function createJwt(characterId, nickname, roles) {
     try {
         const token = jwt.sign(
             {
@@ -8,10 +8,9 @@ export function createJwt(characterId, nickname, roles, accessToken) {
                 nickName: nickname,
                 roles: roles,
                 iat: Date.now(),
-                accessToken: accessToken,
             },
             process.env.JWT_SECRET,
-            { expiresIn: '7d' }
+            { expiresIn: '1d' }
         );
         return token;
     } catch (e) {

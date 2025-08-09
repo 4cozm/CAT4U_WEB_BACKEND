@@ -3,12 +3,17 @@
     두 만료시간이 다를 경우 문제가 생길 수 있기에 일관성 보장을 위해 config로 분리
 */
 export function getSessionConfig() {
+    const isDev = process.env.isDev === 'true';
     return {
         TTL: 600,
-        COOKIE_OPTIONS:
-            process.env.isDev === 'true'
-                ? { httpOnly: true, secure: false, sameSite: 'lax' }
-                : { httpOnly: true, secure: true, sameSite: 'lax' },
+        COOKIE_OPTIONS: {
+            httpOnly: true,
+            secure: !isDev,
+            sameSite: 'lax',
+            path: '/',
+            ...(isDev ? {} : { domain: '.cat4u.store' }),
+            maxAge: 86_300_000, // 쿠키 만료일 : 1일 (JWT 유효기간과 동일하게 가져가야함)
+        },
     };
 }
 
