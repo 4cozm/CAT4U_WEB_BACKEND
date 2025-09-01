@@ -11,7 +11,8 @@
         "lint:fix": "eslint . --fix",
         "format": "prettier --write .",
         "prepare": "husky install",
-        "postinstall": "prisma generate"
+        "postinstall": "prisma generate",
+        "lint:staged": "lint-staged"
     },
     "author": "Coding Cats",
     "license": "MIT",
