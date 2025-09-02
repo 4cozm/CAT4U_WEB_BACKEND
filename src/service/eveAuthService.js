@@ -82,12 +82,7 @@ export async function processCallback(code, loginIp) {
             },
         });
 
-        const token = createJwt(
-            character.CharacterID,
-            character.CharacterName,
-            extractRole,
-            access_token
-        );
+        const token = createJwt(character.CharacterID, character.CharacterName, extractRole);
 
         logger().info('DB에 유저 정보 저장/업데이트 완료', { 닉네임: character.CharacterName });
         return token;
