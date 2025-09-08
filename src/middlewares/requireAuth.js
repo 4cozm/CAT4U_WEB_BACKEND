@@ -7,15 +7,22 @@ export default function requireAuth(req, res, next) {
     if (!JWT_SECRET) {
         logger().warn('JWT_SECRET이 로드되지 않았습니다');
     }
-    // 프리플라이트 + ESI 콜백만 통과
-    if (req.method === 'OPTIONS' || req.path.startsWith('/api/esi/callback')) {
+
+    // 인증 제외 경로
+    const publicPaths = [
+        '/api/esi/login', // 로그인 시작
+        '/api/esi/callback', // ESI 콜백
+    ];
+
+    // OPTIONS 요청 또는 화이트리스트 경로는 통과
+    if (req.method === 'OPTIONS' || publicPaths.some(path => req.path.startsWith(path))) {
         return next();
     }
 
     const token = req.cookies?.access_token;
 
     if (!token) {
-        return res.redirect('/api/esi/start');
+        return res.redirect('/api/esi/login');
     }
 
     try {
@@ -25,6 +32,6 @@ export default function requireAuth(req, res, next) {
         try {
             res.clearCookie('access_token');
         } catch {}
-        return res.redirect('/api/esi/start');
+        return res.redirect('/api/esi/login');
     }
 }
