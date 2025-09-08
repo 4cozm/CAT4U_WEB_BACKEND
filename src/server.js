@@ -6,5 +6,5 @@ await initializeServer(); //서버 초기 설정
 const app = await createApp(); //express 객체 초기화
 
 app.listen(3000, async () => {
-    console.log('🚀서버 실행 중');
+    console.log('🚀서버가 시작되었습니다!');
 });
