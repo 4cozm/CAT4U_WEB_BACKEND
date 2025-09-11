@@ -1,22 +1,27 @@
 import axios from 'axios';
+import getCallerName from './getCallerName.js';
+import { logger } from './logger.js';
 
+/**
+ * 아이템의 아이디와 이름을 한 쌍으로 해서 반환합니다.
+ * 대소문자 구분은 없습니다
+ * @param {Array} item [ plex , Rifter ] 배열 객체가 와야함
+ * @returns 배열 객체 [ { id: 587, name: 'Rifter' } , { id: 44992, name: 'PLEX' } ]
+ */
 async function getItemId(item) {
-    const res = await axios.post(
-        'https://esi.evetech.net/latest/universe/ids/',
-        ['Rifter', 'Jaguar'],
-        {
-            headers: { 'Content-Type': 'application/json' },
-        }
-    );
-    console.log(res.data.inventory_types);
-    const hit = res.data.inventory_types?.[0];
+    const payload = Array.isArray(item) ? item : [item];
+    const res = await axios.post('https://esi.evetech.net/latest/universe/ids/', payload, {
+        headers: { 'Content-Type': 'application/json' },
+    });
+    const hit = res.data.inventory_types; // : [ { id: 587, name: 'Rifter' } , { id: 44992, name: 'PLEX' } ]
     if (!hit) {
-        throw new Error('아이템을 찾을 수 없습니다.');
+        logger().warn(
+            `[getItemId] : 존재하지 않는 아이템 이름으로 조회가 이루어 졌습니다. : ${item}`
+        );
+        throw new Error('[getItemId] 존재하지 않는 아이템 이름으로 조회가 이루어 졌습니다.');
     }
-    return hit.id;
+    return hit.map(item => item.id);
 }
-
-await getItemId('Rifter,Jaguar');
 
 async function getMarketData(itemId, regionId) {
     const res = await axios.get(
@@ -36,26 +41,34 @@ async function getMarketData(itemId, regionId) {
     return { hasHistory: true, avgPrice, lowestPrice };
 }
 
-async function JitaPrice(item, region) {
+export default async function eveCommercialAreaPrice(item, region) {
+    const key = String(region).toLowerCase();
     const REGION = {
         jita: 10000002,
         amarr: 10000043,
         dodixie: 10000032,
         rens: 10000030,
     };
-    const itemId = await getItemId(item);
-    const key = String(region).toLowerCase();
-    if (region === 'jita') {
-        return await getMarketData(itemId, REGION.jita);
-    } else if (region === 'amarr') {
-        return await getMarketData(itemId, REGION.amarr);
-    } else if (region === 'dodixie') {
-        return await getMarketData(itemId, REGION.dodixie);
-    } else if (region === 'rens') {
-        return await getMarketData(itemId, REGION.rens);
-    } else {
-        throw new Error(
-            'Invalid region specified. Please use "jita", "amarr", "dodixie", or "rens".'
+
+    if (!(key in REGION)) {
+        logger().error(
+            `[eveCommercialAreaPrice] 지원하지 않는 지역: ${region} 호출:${getCallerName()}`
         );
+        throw new Error(`코드 오류 : 지원하지 않는 지역: ${region}`);
     }
+
+    const chunkSize = 5; //병렬 처리 한번에 할 횟수 (이브 초당 rate limit은 20개)
+    const itemIds = await getItemId(item);
+    const results = [];
+
+    for (let i = 0; i < itemIds.length; i += chunkSize) {
+        const batch = itemIds.slice(i, i + chunkSize);
+        const batchResults = await Promise.all(batch.map(id => getMarketData(id, REGION[key])));
+        results.push(...batchResults);
+    }
+
+    return results;
 }
+
+const a = ['plex', 'Rifter'];
+console.log(await eveCommercialAreaPrice(a, 'jita'));
