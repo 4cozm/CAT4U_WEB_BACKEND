@@ -38,7 +38,7 @@ async function getMarketData(itemId, regionId) {
     const avgPrice = prices.reduce((s, p) => s + p, 0) / prices.length;
     const lowestPrice = Math.min(...last30.map(d => d.lowest));
 
-    return { hasHistory: true, avgPrice, lowestPrice };
+    return { avgPrice, lowestPrice };
 }
 
 export default async function eveCommercialAreaPrice(item, region) {
