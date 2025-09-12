@@ -20,10 +20,10 @@ async function getItemId(item) {
         );
         throw new Error('[getItemId] 존재하지 않는 아이템 이름으로 조회가 이루어 졌습니다.');
     }
-    return hit.map(item => item.id);
+    return { ids: hit.map(item => item.id), names: hit.map(item => item.name) };
 }
 
-async function getMarketData(itemId, regionId) {
+async function getMarketData(itemName, itemId, regionId) {
     const res = await axios.get(
         `https://esi.evetech.net/latest/markets/${regionId}/history/?type_id=${itemId}`
     );
@@ -38,7 +38,7 @@ async function getMarketData(itemId, regionId) {
     const avgPrice = prices.reduce((s, p) => s + p, 0) / prices.length;
     const lowestPrice = Math.min(...last30.map(d => d.lowest));
 
-    return { avgPrice, lowestPrice };
+    return { itemName, avgPrice, lowestPrice };
 }
 
 export default async function eveCommercialAreaPrice(item, region) {
@@ -58,12 +58,18 @@ export default async function eveCommercialAreaPrice(item, region) {
     }
 
     const chunkSize = 5; //병렬 처리 한번에 할 횟수 (이브 초당 rate limit은 20개)
-    const itemIds = await getItemId(item);
+    const gIi = await getItemId(item);
+    const itemIds = gIi.ids;
+    const itemNames = gIi.names;
+
     const results = [];
 
     for (let i = 0; i < itemIds.length; i += chunkSize) {
         const batch = itemIds.slice(i, i + chunkSize);
-        const batchResults = await Promise.all(batch.map(id => getMarketData(id, REGION[key])));
+        const batch2 = itemNames.slice(i, i + chunkSize);
+        const batchResults = await Promise.all(
+            batch.map((id, idx) => getMarketData(batch2[idx], id, REGION[key]))
+        );
         results.push(...batchResults);
     }
 
