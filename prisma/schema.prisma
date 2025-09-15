@@ -27,4 +27,19 @@ model users {
   created_at      DateTime  @default(now())
   updated_at      DateTime  @updatedAt
   Role            String?   @db.VarChar(64)
+
+  guides            guide[]  @relation("UserGuides")
+}
+
+model guide {
+  id             BigInt   @id @default(autoincrement()) // PK
+  character_id   BigInt 
+  board_title    String   @db.VarChar(200)
+  board_content  String   @db.Text                      
+  create_dt      DateTime @default(now())               
+  recommend_cnt  Int      @default(0)
+
+  user users @relation("UserGuides", fields: [character_id], references: [character_id], onDelete: Cascade)
+
+  @@map("guide") 
 }
