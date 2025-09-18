@@ -7,6 +7,7 @@ import router from './routes/index.js';
 
 export async function createApp() {
     const app = express();
+    app.set('trust proxy', 1); // Caddy 뒤에 있을때 설정 (X-Forwarded-* 신뢰)
     app.use(cookieParser());
     const sessionMiddleware = await createSessionMiddleware(); // express와 한몸이라 순서를 명확하게 하기 위해 여기에 작성함
     app.use(sessionMiddleware);
