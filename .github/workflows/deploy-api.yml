@@ -7,7 +7,6 @@ on:
 jobs:
     deploy:
         runs-on: ubuntu-latest
-
         steps:
             - name: Deploy over SSH (git pull → npm ci → pm2 reload)
               uses: appleboy/ssh-action@v1.2.0
@@ -23,9 +22,9 @@ jobs:
                       command -v pm2 >/dev/null 2>&1 || sudo npm i -g pm2
 
                       if [ ! -d "/CAT4U_WEB_BACKEND/src/.git" ]; then
-                          sudo mkdir -p /CAT4U_WEB_BACKEND/src
-                          sudo chown -R "$USER:$USER" /CAT4U_WEB_BACKEND
-                          git clone "https://github.com/4cozm/CAT4U_WEB_BACKEND.git" "/CAT4U_WEB_BACKEND/src"
+                        sudo mkdir -p /CAT4U_WEB_BACKEND/src
+                        sudo chown -R "$USER:$USER" /CAT4U_WEB_BACKEND
+                        git clone "https://github.com/4cozm/CAT4U_WEB_BACKEND.git" "/CAT4U_WEB_BACKEND/src"
                       fi
 
                       cd /CAT4U_WEB_BACKEND/src
@@ -34,8 +33,13 @@ jobs:
                       git reset --hard origin/main
 
                       export NODE_ENV=production
-                      export HUSKY=0              
-                      npm ci --omit=dev           
 
+                      # ✅ devDeps 제외 + 모든 npm 스크립트(install/postinstall/prepare 등) 비활성화
+                      npm ci --omit=dev --ignore-scripts
+
+                      # ✅ 필요한 스크립트만 수동 실행 (Prisma Client 생성)
+                      npx prisma generate
+
+                      # 앱 시작/무중단 재시작
                       pm2 reload cat4u-backend --update-env || pm2 start server.js --name cat4u-backend -i 2 --env production
                       pm2 save
