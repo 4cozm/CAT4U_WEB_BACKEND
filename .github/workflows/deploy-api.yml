@@ -1,86 +1,84 @@
-name: Deploy API (PM2, GCP)
+name: Deploy API (PM2)
 
 on:
-    push:
-        branches: [main]
+  push:
+    branches: [ "main" ]
 
 jobs:
-    deploy:
-        runs-on: ubuntu-latest
+  deploy:
+    runs-on: ubuntu-latest
 
-        steps:
-            - name: Deploy over SSH (git pull → npm ci → pm2 reload)
-              uses: appleboy/ssh-action@v1.2.0
-              with:
-                  host: ${{ secrets.SSH_HOST }}
-                  username: ${{ secrets.SSH_USER }}
-                  key: ${{ secrets.SSH_KEY }}
-                  port: 22
-                  script: |
-                      set -euo pipefail
+    steps:
+      - name: Deploy over SSH (git pull → npm ci → pm2 reload)
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}      # 예: 34.22.81.250
+          username: ${{ secrets.SSH_USER }}  # 예: ubuntu
+          key: ${{ secrets.SSH_KEY }}        # OpenSSH 개인키 전체
+          script: |
+            set -Eeuo pipefail
 
-                      # ▼ 프로젝트 루트로 이동 (없으면 최초 clone)
-                      if [ ! -d "/srv/cat4u-api/.git" ]; then
-                        sudo mkdir -p /srv/cat4u-api
-                        sudo chown -R $USER:$USER /srv/cat4u-api
-                        git clone https://github.com/<YOUR_ORG>/<YOUR_REPO>.git /srv/cat4u-api
-                      fi
-                      cd /srv/cat4u-api
+            # 필요한 도구
+            command -v git >/dev/null 2>&1 || { sudo apt-get update -y && sudo apt-get install -y git; }
+            command -v pm2 >/dev/null 2>&1 || sudo npm i -g pm2
 
-                      # ▼ 최신 코드 반영
-                      git fetch --all
-                      git reset --hard origin/main
+            # 최초 클론 (공개 레포)
+            if [ ! -d "/CAT4U_WEB_BACKEND/src/.git" ]; then
+              sudo mkdir -p /CAT4U_WEB_BACKEND/src
+              sudo chown -R "$USER:$USER" /CAT4U_WEB_BACKEND
+              git clone "https://github.com/4cozm/CAT4U_WEB_BACKEND.git" "/CAT4U_WEB_BACKEND/src"
+            fi
 
-                      # ▼ Node 설정 (필요하면 nvm/node 경로 보정)
-                      export NODE_ENV=production
+            cd /CAT4U_WEB_BACKEND/src
+            git fetch --all
+            git checkout main
+            git reset --hard origin/main
 
-                      # ▼ 의존성 설치 (재현성 위해 npm ci)
-                      npm ci --only=production
+            export NODE_ENV=production
+            npm ci --only=production
 
-                      # ▼ PM2 무중단 재시작(클러스터 2개 이상일 때 효과적)
-                      pm2 reload cat4u-api --update-env || pm2 start app.js --name cat4u-api -i 2 --env production
+            # PM2 무중단 재시작(없으면 시작)
+            pm2 reload cat4u-backend --update-env || pm2 start server.js --name cat4u-backend -i 2 --env production
+            pm2 save
 
-                      # ▼ 부팅 시 자동 시작 저장
-                      pm2 save
+      # ✅ Discord 알림 (성공)
+      - name: Notify Discord (Success)
+        if: success()
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          SHA_SHORT="${GITHUB_SHA::7}"
+          cat > payload.json <<'JSON'
+          {
+            "embeds": [{
+              "title": "🚀 백엔드 배포 성공",
+              "description": "리포지토리: ${REPO}\n커밋: ${SHA}\n[▶ 실행 로그 보기](${RUN_URL})",
+              "color": 5763719
+            }]
+          }
+          JSON
+          sed -i "s|\${REPO}|${GITHUB_REPOSITORY}|g" payload.json
+          sed -i "s|\${SHA}|${SHA_SHORT}|g" payload.json
+          sed -i "s|\${RUN_URL}|https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|g" payload.json
+          curl -sS -H "Content-Type: application/json" -X POST -d @payload.json "$WEBHOOK"
 
-            # ✅ Discord 알림 (성공)
-            - name: Notify Discord (Success)
-              if: success()
-              env:
-                  WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
-              run: |
-                  SHA_SHORT="${GITHUB_SHA::7}"
-                  cat > payload.json <<'JSON'
-                  {
-                    "embeds": [{
-                      "title": "🚀 백엔드 배포 성공",
-                      "description": "리포지토리: ${REPO}\n커밋: ${SHA}\n[▶ 실행 로그 보기](${RUN_URL})",
-                      "color": 5763719
-                    }]
-                  }
-                  JSON
-                  sed -i "s|\${REPO}|${GITHUB_REPOSITORY}|g" payload.json
-                  sed -i "s|\${SHA}|${SHA_SHORT}|g" payload.json
-                  sed -i "s|\${RUN_URL}|https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|g" payload.json
-                  curl -sS -H "Content-Type: application/json" -X POST -d @payload.json "$WEBHOOK"
-
-            # ❌ Discord 알림 (실패)
-            - name: Notify Discord (Failure)
-              if: failure()
-              env:
-                  WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
-              run: |
-                  SHA_SHORT="${GITHUB_SHA::7}"
-                  cat > payload.json <<'JSON'
-                  {
-                    "embeds": [{
-                      "title": "🔥 백엔드 배포 실패",
-                      "description": "리포지토리: ${REPO}\n커밋: ${SHA}\n[▶ 실행 로그 보기](${RUN_URL})",
-                      "color": 15548997
-                    }]
-                  }
-                  JSON
-                  sed -i "s|\${REPO}|${GITHUB_REPOSITORY}|g" payload.json
-                  sed -i "s|\${SHA}|${SHA_SHORT}|g" payload.json
-                  sed -i "s|\${RUN_URL}|https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|g" payload.json
-                  curl -sS -H "Content-Type: application/json" -X POST -d @payload.json "$WEBHOOK"
+      # ❌ Discord 알림 (실패)
+      - name: Notify Discord (Failure)
+        if: failure()
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          SHA_SHORT="${GITHUB_SHA::7}"
+          cat > payload.json <<'JSON'
+          {
+            "embeds": [{
+              "title": "🔥 백엔드 배포 실패",
+              "description": "리포지토리: ${REPO}\n커밋: ${SHA}\n[▶ 실행 로그 보기](${RUN_URL})",
+              "color": 15548997
+            }]
+          }
+          JSON
+          sed -i "s|\${REPO}|${GITHUB_REPOSITORY}|g" payload.json
+          sed -i "s|\${SHA}|${SHA_SHORT}|g" payload.json
+          sed -i "s|\${RUN_URL}|https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|g" payload.json
+          curl -sS -H "Content-Type: application/json" -X POST -d @payload.json "$WEBHOOK"
