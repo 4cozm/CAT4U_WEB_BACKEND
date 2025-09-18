@@ -1,72 +1,70 @@
-name: Deploy API
+name: Deploy Backend (SSH)
 
 on:
     push:
-        branches:
-            - main
+        branches: [main]
+        paths:
+            - 'src/**'
+            - 'prisma/**'
+            - 'package.json'
+            - 'package-lock.json'
+            - 'docker-compose.yml'
+            - '.github/workflows/deploy-backend.yml'
+    workflow_dispatch:
 
 jobs:
     deploy:
         runs-on: ubuntu-latest
         steps:
-            - name: Deploy over SSH (skip-if-no-change, prisma + pm2)
+            - name: Deploy over SSH (minimal update to prisma and pm2)
               uses: appleboy/ssh-action@v1.2.0
               with:
                   host: ${{ secrets.SSH_HOST }}
                   username: ${{ secrets.SSH_USER }}
                   key: ${{ secrets.SSH_KEY }}
                   port: ${{ secrets.SSH_PORT || 22 }}
-                  script_stop: true
                   script: |
-                      set -Eeuo pipefail
+                      set -euo pipefail
 
-                      # ── 설정 ───────────────────────────────────────────────
-                      APP_DIR=/CAT4U_WEB_BACKEND
-                      REPO=https://github.com/4cozm/CAT4U_WEB_BACKEND.git
-                      BRANCH=main
-                      PROC=cat4u-backend
-                      INSTANCES=max   # 필요하면 2 등으로 고정
+                      APP_DIR="$HOME/CAT4U_WEB_BACKEND"
+                      REPO="https://github.com/4cozm/CAT4U_WEB_BACKEND.git"
+                      BRANCH="main"
+                      PROC="cat4u-backend"
 
-                      # ── 준비(툴) ───────────────────────────────────────────
                       command -v git >/dev/null 2>&1 || { sudo apt-get update -y && sudo apt-get install -y git; }
                       command -v pm2 >/dev/null 2>&1 || sudo npm i -g pm2
 
-                      # ── 리포 준비 ──────────────────────────────────────────
+                      # repo 보장(최초 1회 clone)
                       mkdir -p "$APP_DIR"
                       if [ ! -d "$APP_DIR/.git" ]; then
                         git clone --branch "$BRANCH" --depth 1 "$REPO" "$APP_DIR"
                       fi
 
                       cd "$APP_DIR"
+
+                      # ✅ 배포 중 husky 완전 차단
+                      git config --local core.hooksPath /dev/null || true
+                      export HUSKY=0
+                      export HUSKY_SKIP_INSTALL=1
+
+                      # 업데이트(항상 최신으로)
                       git remote set-url origin "$REPO"
+                      git fetch origin "$BRANCH" --depth 1
+                      git checkout "$BRANCH"
+                      git reset --hard "origin/$BRANCH"
 
-                      # ── 변경 감지(없으면 즉시 종료) ────────────────────────
-                      git fetch --depth 1 origin "$BRANCH"
-                      REMOTE=$(git rev-parse origin/"$BRANCH")
-                      LOCAL=$(git rev-parse HEAD || echo "none")
-
-                      if [ "$LOCAL" = "$REMOTE" ]; then
-                        echo "No new commits. ✅ Skip install & reload."
-                        exit 0
-                      fi
-
-                      # ── 업데이트 & 설치 ─────────────────────────────────────
-                      git reset --hard "$REMOTE"
                       export NODE_ENV=production
+                      # prisma가 devDep → dev 생략 금지. 스크립트만 비활성화해 husky 방지
+                      npm ci --ignore-scripts
 
-                      # ⚠️ prisma CLI가 devDependency라면 `--omit=dev` 사용 시 실패할 수 있음.
-                      #    그 경우 아래 줄에서 --omit=dev 를 제거하세요.
-                      npm ci --omit=dev --ignore-scripts
-
-                      # ── Prisma(스키마 항상 존재 가정) ─────────────────────
                       npx prisma generate
                       if [ -d prisma/migrations ] && [ "$(ls -A prisma/migrations)" ]; then
                         npx prisma migrate deploy
                       fi
 
-                      # ── PM2: 있으면 reload, 없으면 start(클러스터) ────────
+                      # PM2: 있으면 reload, 없으면 start
                       pm2 describe "$PROC" >/dev/null 2>&1 \
                         && pm2 reload "$PROC" --update-env \
-                        || pm2 start npm --name "$PROC" -i "$INSTANCES" -- run start
+                        || pm2 start npm --name "$PROC" -i max -- run start
 
                       pm2 save
