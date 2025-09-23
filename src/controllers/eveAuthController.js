@@ -74,3 +74,20 @@ export async function handleCallback(req, res) {
         res.status(500).send('서버 문제로 인한 로그인 실패');
     }
 }
+
+export async function handleAuthCheck(req, res) {
+    try {
+        const { characterId, nickName } = req.user;
+        const portraitUrl = `https://images.evetech.net/characters/${characterId}/portrait?size=128`;
+
+        res.json({
+            ok: true,
+            id: characterId,
+            name: nickName,
+            portrait: portraitUrl,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ ok: false, error: '프로필 조회 실패' });
+    }
+}
