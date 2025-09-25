@@ -20,7 +20,7 @@ export function redirectToEveLogin(req, res) {
 
     logger().info(`[EVE ESI] state 생성 및 리디렉션: ${state}, ip=${req.ip}`);
 
-    res.redirect(authorizeUrl);
+    return res.status(401).json({ url: authorizeUrl });
 }
 
 /**
@@ -63,7 +63,7 @@ export async function handleCallback(req, res) {
         const token = await processCallback(code, req.ip);
 
         const redirectUrl =
-            process.env.isDev === 'true' ? 'http://127.0.0.1:3000/' : 'https://web.cat4u.store';
+            process.env.isDev === 'true' ? 'http://127.0.0.1:4000/' : 'https://web.cat4u.store';
         const cookieOption = getSessionConfig();
         res.cookie('access_token', token, cookieOption.COOKIE_OPTIONS);
         logger().info('[EVE ESI] JWT 발급 성공', req.ip);

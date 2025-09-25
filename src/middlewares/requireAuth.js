@@ -22,7 +22,7 @@ export default function requireAuth(req, res, next) {
     const token = req.cookies?.access_token;
 
     if (!token) {
-        return res.redirect('/api/esi/login');
+        return res.sendStatus(401); // 프론트엔드에서 자동으로 캐치해서 로그인 페이지로 보냄
     }
 
     try {
@@ -32,6 +32,6 @@ export default function requireAuth(req, res, next) {
         try {
             res.clearCookie('access_token');
         } catch {}
-        return res.redirect('/api/esi/login');
+        return res.sendStatus(401); // 프론트엔드에서 자동으로 캐치해서 로그인 페이지로 보냄
     }
 }
