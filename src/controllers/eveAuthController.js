@@ -20,7 +20,7 @@ export function redirectToEveLogin(req, res) {
 
     logger().info(`[EVE ESI] state 생성 및 리디렉션: ${state}, ip=${req.ip}`);
 
-    res.redirect(authorizeUrl);
+    return res.status(401).json({ url: authorizeUrl });
 }
 
 /**
@@ -63,7 +63,7 @@ export async function handleCallback(req, res) {
         const token = await processCallback(code, req.ip);
 
         const redirectUrl =
-            process.env.isDev === 'true' ? 'http://127.0.0.1:3000/' : 'https://web.cat4u.store';
+            process.env.isDev === 'true' ? 'http://127.0.0.1:4000/' : 'https://web.cat4u.store';
         const cookieOption = getSessionConfig();
         res.cookie('access_token', token, cookieOption.COOKIE_OPTIONS);
         logger().info('[EVE ESI] JWT 발급 성공', req.ip);
@@ -72,5 +72,22 @@ export async function handleCallback(req, res) {
     } catch (err) {
         logger().warn(`[EVE ESI][콜백] 로그인 중 에러 발생 ${err} | ${req.ip}`);
         res.status(500).send('서버 문제로 인한 로그인 실패');
+    }
+}
+
+export async function handleAuthCheck(req, res) {
+    try {
+        const { characterId, nickName } = req.user;
+        const portraitUrl = `https://images.evetech.net/characters/${characterId}/portrait?size=128`;
+
+        res.json({
+            ok: true,
+            id: characterId,
+            name: nickName,
+            portrait: portraitUrl,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ ok: false, error: '프로필 조회 실패' });
     }
 }

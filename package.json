@@ -10,7 +10,7 @@
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
         "format": "prettier --write .",
-        "prepare": "husky install",
+        "prepare": "husky",
         "postinstall": "prisma generate",
         "lint:staged": "lint-staged"
     },
