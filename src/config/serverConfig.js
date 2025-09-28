@@ -41,3 +41,9 @@ export const defaultEnv = {
     isDev: 'true', //개발환경 여부
     changeArtifactMode: 'false', //아티팩트 선택 변경 모드
 };
+
+export const MAX_FILE_SIZE = 1024 * 1024 * 1024; //S3에 단일로 업로드 가능한 용량 최대 용량 (1GB)
+
+export const s3UploadTimeout = 3600; //S3에 파일을 올릴 수 있는 Presigned URL 유효시간 (1시간)
+
+export const serverDomain = 'https://web.cat4u.store';
