@@ -14,7 +14,7 @@ datasource db {
 }
 
 
-model users {
+model Users {
   id              BigInt    @id @default(autoincrement())
   character_id    BigInt    @unique
   nickname        String    @unique @db.VarChar(64)
@@ -27,4 +27,55 @@ model users {
   created_at      DateTime  @default(now())
   updated_at      DateTime  @updatedAt
   Role            String?   @db.VarChar(64)
+}
+
+
+// enums
+enum FileStatus {
+  uploaded   // 업로드 완료(최종 테이블에만 존재)
+  optimized  // 최적화 완료(최종 테이블에만 존재)
+}
+
+enum UploadStatus {
+  pending    // Presign 발급(아직 업로드 안 됨)
+  completed  // S3 업로드 완료 확인
+  failed     // 업로드 실패
+  expired    // 중복/오래된 세션 정리용
+}
+
+model File {
+  id             BigInt     @id @default(autoincrement())
+  file_md5       String     @unique
+  original_name  String?
+  extension      String
+  size           BigInt
+  s3_key         String
+  s3_url         String
+  status         FileStatus @default(uploaded)  // File 테이블은 uploaded/optimized만
+  need_optimize  Boolean    @default(true)
+  ref_count      Int        @default(0)
+  created_at     DateTime   @default(now())
+  updated_at     DateTime   @updatedAt
+
+  // 뒤늦게 연결할 수 있도록 세션과의 선택적 관계
+  sessions       UploadSession[]
+}
+
+model UploadSession {
+  id             BigInt        @id @default(autoincrement())
+  file_md5       String
+  original_name  String?
+  extension      String
+  size           BigInt
+  s3_key         String
+  status         UploadStatus  @default(pending)
+  created_at     DateTime      @default(now())
+  updated_at     DateTime      @updatedAt
+
+  // 완료 시 최종 File 로우에 연결
+  file_id        BigInt?
+  file           File?         @relation(fields: [file_id], references: [id], onDelete: SetNull)
+
+  @@index([file_md5, status, created_at])
+  @@index([file_id])
 }
