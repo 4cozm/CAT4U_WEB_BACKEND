@@ -24,6 +24,10 @@ const secretNames = [
     'DISCORD-WEBHOOK',
     'REDIS-SESSION-SECRET', //redis 세션 보안을 위한 키
     'JWT-SECRET',
+    'AWS-REGION',
+    'AWS-ACCESS-KEY-ID',
+    'AWS-SECRET-ACCESS-KEY',
+    'AWS-S3-BUCKET-NAME',
 ];
 
 const loadSecretsFromVault = async (useDevPrefix = false) => {
