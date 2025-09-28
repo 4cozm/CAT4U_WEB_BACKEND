@@ -1,5 +1,6 @@
 // 서버 시작시 필요한 모듈 설정
 
+import { buildS3Connection } from '../service/awsS3Client.js';
 import { connectWithRetry } from '../service/mySqlService.js';
 import { initRedis } from '../service/redisService.js';
 import { ensureEnvWithDefaults } from '../utils/envFile.js';
@@ -13,6 +14,7 @@ export default async function initializeServer() {
         await setDiscordHook(); // Discord Hook 초기화
         await connectWithRetry(true); // MySQL 연결
         await initRedis(); //redis 연결
+        buildS3Connection(); //AWS S3 객체 생성
     } catch (error) {
         console.error('🚨 서버 초기화 중 오류 발생:', error);
         process.exit(1);
