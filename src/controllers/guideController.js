@@ -8,7 +8,7 @@ import { logger } from '../utils/logger.js';
 export const createGuide = async (req, res, next) => {
     logger().info('가이드 생성 시작');
     try {
-        const created = await createGuideService(req.body);
+        const created = await createGuideService(req.user, req.body);
         return res.status(201).json(created);
     } catch (err) {
         if (err?.status) {

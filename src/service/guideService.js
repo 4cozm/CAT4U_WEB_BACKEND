@@ -1,30 +1,22 @@
 import prisma from './prismaService.js';
 import { logger } from '../utils/logger.js';
 
-export async function createGuideService(payload) {
+export async function createGuideService(user, payload) {
     const { character_id, board_title, board_content } = payload ?? {};
 
     // --- 기본 검증 ---
-    if (character_id === null) {
-        throw badReq('character_id is required');
-    }
     if (typeof board_title !== 'string' || !board_title.trim()) {
         throw badReq('board_title is required');
     }
     if (typeof board_content !== 'string') {
         throw badReq('board_content must be string');
     }
-
-    const cid = Number(character_id);
-    if (!Number.isFinite(cid)) {
-        throw badReq('character_id must be a number');
-    }
-
+    logger().info('user info {}', user);
     // --- DB 저장 ---
     try {
         const created = await prisma.guide.create({
             data: {
-                character_id: cid,
+                character_id: user.characterId,
                 board_title: board_title.trim(),
                 board_content, // JSON 문자열 그대로
             },
