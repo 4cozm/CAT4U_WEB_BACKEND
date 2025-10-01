@@ -26,8 +26,8 @@ async function getItemId(item) {
         );
         throw new Error('[getItemId] 존재하지 않는 아이템 이름으로 조회가 이루어 졌습니다.');
     }
-    return res.data.id;
+    return hit.map(item => item.id);
 }
 
-console.log(await getItemname(587, 'ko'));
+console.log(await getItemname(587, 'EN'));
 console.log(await getItemId('Rifter'));
