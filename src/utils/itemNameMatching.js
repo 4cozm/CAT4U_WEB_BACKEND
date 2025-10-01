@@ -1,6 +1,17 @@
 import axios from 'axios';
 import { logger } from './logger.js';
 
+async function koen(itemName) {
+    const input = itemName.charCodeAt(0);
+    if (input >= 0xac00 && input <= 0xd7a3) {
+        return 'ko';
+    } else if ((input >= 0x41 && input <= 0x5a) || (input >= 0x61 && input <= 0x7a)) {
+        return 'en';
+    } else {
+        return 'Neither Korean nor English';
+    }
+}
+
 async function getItemname(itemId, Language) {
     const res = await axios.get(`https://esi.evetech.net/latest/universe/types/${itemId}/`, {
         headers: { 'Accept-Language': Language },
@@ -29,5 +40,6 @@ async function getItemId(item) {
     return hit.map(item => item.id);
 }
 
-console.log(await getItemname(587, 'EN'));
-console.log(await getItemId('Rifter'));
+console.log(koen('Rifter'));
+console.log(koen('리프터'));
+console.log(koen('1234'));
