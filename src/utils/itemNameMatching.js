@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { logger } from './logger.js';
 
-async function koen(itemName) {
+async function recognizeLanguage(itemName) {
     const input = itemName.charCodeAt(0);
     if (input >= 0xac00 && input <= 0xd7a3) {
         return 'ko';
@@ -40,6 +40,6 @@ async function getItemId(item) {
     return hit.map(item => item.id);
 }
 
-console.log(koen('Rifter'));
-console.log(koen('리프터'));
-console.log(koen('1234'));
+console.log(recognizeLanguage('Rifter'));
+console.log(recognizeLanguage('리프터'));
+console.log(recognizeLanguage('1234'));
