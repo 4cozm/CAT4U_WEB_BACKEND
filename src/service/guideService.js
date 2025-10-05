@@ -2,7 +2,7 @@ import prisma from './prismaService.js';
 import { logger } from '../utils/logger.js';
 
 export async function createGuideService(user, payload) {
-    const { character_id, board_title, board_content } = payload ?? {};
+    const { board_title, board_content } = payload ?? {};
 
     // --- 기본 검증 ---
     if (typeof board_title !== 'string' || !board_title.trim()) {

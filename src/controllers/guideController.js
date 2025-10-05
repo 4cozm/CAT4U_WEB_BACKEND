@@ -3,9 +3,9 @@ import { logger } from '../utils/logger.js';
 
 /**
  * POST /api/guide
- * Body: { character_id: number, board_title: string, board_content: string }
+ * Body: { board_title: string, board_content: string }
  */
-export const createGuide = async (req, res, next) => {
+export const createGuide = async (req, res) => {
     logger().info('가이드 생성 시작');
     try {
         const created = await createGuideService(req.user, req.body);
