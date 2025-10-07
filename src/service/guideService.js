@@ -6,10 +6,10 @@ export async function createGuideService(user, payload) {
 
     // --- 기본 검증 ---
     if (typeof board_title !== 'string' || !board_title.trim()) {
-        throw badReq('board_title is required');
+        throw badReq('board_title is required', 400);
     }
     if (typeof board_content !== 'string') {
-        throw badReq('board_content must be string');
+        throw badReq('board_content must be string', 400);
     }
     logger().info('user info {}', user);
     // --- DB 저장 ---
@@ -18,19 +18,19 @@ export async function createGuideService(user, payload) {
             data: {
                 character_id: user.characterId,
                 board_title: board_title.trim(),
-                board_content, // JSON 문자열 그대로
+                board_content,
             },
         });
-        logger().info('가이드 생성 완료 : {}', board_title);
+        logger().info('가이드 생성 완료 : ', board_title);
         return created;
     } catch (e) {
         logger().error(e);
-        throw e;
+        throw badReq('가이드 생성 실패', 500);
     }
 }
 
-function badReq(msg) {
+function badReq(msg, errCode) {
     const err = new Error(msg);
-    err.status = 400;
+    err.status = errCode;
     return err;
 }
