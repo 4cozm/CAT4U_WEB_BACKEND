@@ -22,7 +22,7 @@ CREATE TABLE `guide` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `character_id` BIGINT NOT NULL,
     `board_title` VARCHAR(200) NOT NULL,
-    `board_content` TEXT NOT NULL,
+    `board_content` JSON NOT NULL,
     `create_dt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `recommend_cnt` INT NOT NULL DEFAULT 0,
 

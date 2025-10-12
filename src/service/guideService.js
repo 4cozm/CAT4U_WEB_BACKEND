@@ -30,6 +30,7 @@ export async function createGuideService(user, payload) {
 }
 
 function badReq(msg, errCode) {
+    logger().info('오류 발생 : ', msg);
     const err = new Error(msg);
     err.status = errCode;
     return err;
