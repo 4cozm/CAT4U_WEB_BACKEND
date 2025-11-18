@@ -20,7 +20,7 @@ CREATE TABLE `users` (
 
 CREATE TABLE `board` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
-    `type` ENUM('GUIDE','DOCTRINE','PITTING','MARKET') NOT NULL,
+    `type` ENUM('GUIDE','DOCTRINE','FITTING','MARKET') NOT NULL,
     `character_id` BIGINT NOT NULL,
     `board_title` VARCHAR(200) NOT NULL,
     `board_content` JSON NOT NULL,
@@ -29,7 +29,7 @@ CREATE TABLE `board` (
 
     PRIMARY KEY (`id`),
     INDEX `board_type_create_dt_idx`(`type`, `create_dt`),
-    CONSTRAINT `guide_character_id_fkey`
+    CONSTRAINT `board_character_id_fkey`
         FOREIGN KEY (`character_id`) REFERENCES `users`(`character_id`)
         ON DELETE CASCADE
         ON UPDATE CASCADE

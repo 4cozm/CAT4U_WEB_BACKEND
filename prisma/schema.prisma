@@ -16,7 +16,7 @@ datasource db {
 enum BoardType {
   GUIDE
   DOCTRINE
-  PITTING
+  FITTING
   MARKET
 }
 
@@ -34,7 +34,7 @@ model users {
   updated_at      DateTime  @updatedAt
   Role            String?   @db.VarChar(64)
 
-  guides            guide[]  @relation("UserGuides")
+  boards            board[]  @relation("UserBoards")
 }
 
 model board {
@@ -46,7 +46,7 @@ model board {
   create_dt      DateTime @default(now())               
   recommend_cnt  Int      @default(0)
 
-  user users @relation("UserGuides", fields: [character_id], references: [character_id], onDelete: Cascade)
+  user users @relation("UserBoards", fields: [character_id], references: [character_id], onDelete: Cascade)
 
   @@index([type, create_dt])
   @@map("board") 
