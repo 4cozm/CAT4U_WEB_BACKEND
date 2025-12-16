@@ -1,11 +1,11 @@
-import { PutObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import path from 'path';
-import { MAX_FILE_SIZE, s3UploadTimeout, serverDomain } from '../config/serverConfig.js';
-import { getS3Client } from '../service/awsS3Client.js';
-import prisma from '../service/prismaService.js';
-import { logger } from '../utils/logger.js';
-import printUserInfo from '../utils/printUserInfo.js';
+import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import path from "path";
+import { MAX_FILE_SIZE, s3UploadTimeout, serverDomain } from "../config/serverConfig.js";
+import { getS3Client } from "../service/awsS3Client.js";
+import { prisma } from "../service/prismaService.js";
+import { logger } from "../utils/logger.js";
+import printUserInfo from "../utils/printUserInfo.js";
 
 /**
  * Presigned URL을 발급하는 컨트롤러 함수
@@ -21,7 +21,7 @@ export async function getS3UploadUrl(req, res) {
         if (!fileName || !fileSize || !fileType || !fileMd5) {
             return res
                 .status(400)
-                .json({ error: 'fileName, fileSize, fileType, fileMd5 모두 필요합니다.' });
+                .json({ error: "fileName, fileSize, fileType, fileMd5 모두 필요합니다." });
         }
 
         //md5 검증 단, 대부분 개발자의 실수이므로 리젝트 하지는 않음
@@ -35,13 +35,13 @@ export async function getS3UploadUrl(req, res) {
         try {
             const tooLarge = isFileTooLarge(fileSize);
             if (tooLarge) {
-                return res.status(400).json({ error: '파일 크기가 1GB를 초과하면 안됩니다.' });
+                return res.status(400).json({ error: "파일 크기가 1GB를 초과하면 안됩니다." });
             }
         } catch (err) {
             logger().info(
                 `${printUserInfo()} 잘못된 파일 크기 값 업로드 :${fileSize} , 에러문 :${err}`
             );
-            return res.status(400).json({ error: '잘못된 파일 크기 값' });
+            return res.status(400).json({ error: "잘못된 파일 크기 값" });
         }
 
         const existingFile = await prisma.file.findUnique({
@@ -61,7 +61,7 @@ export async function getS3UploadUrl(req, res) {
 
         // 최적화 여부 판별
         const shouldOptimizeUpload = needsOptimization(fileName);
-        const folder = shouldOptimizeUpload ? 'incoming' : 'optimized';
+        const folder = shouldOptimizeUpload ? "incoming" : "optimized";
         const ext = path.extname(fileName).toLowerCase();
         const fileKey = `${folder}/${fileMd5}${ext}`; //예시 incoming/4a7d1ed414474e4033ac29ccb8653d9b.png
 
@@ -75,14 +75,14 @@ export async function getS3UploadUrl(req, res) {
         const uploadUrl = await getSignedUrl(getS3Client(), command, {
             expiresIn: s3UploadTimeout,
         });
-        await prisma.UploadSession.create({
+        await prisma.uploadSession.create({
             data: {
                 file_md5: fileMd5,
                 original_name: fileName,
                 extension: ext,
                 size: fileSize,
                 s3_key: fileKey,
-                status: 'pending',
+                status: "pending",
             },
         });
         logger().info(
@@ -91,11 +91,11 @@ export async function getS3UploadUrl(req, res) {
         return res.json({
             uploadUrl,
             fileUrl: `${serverDomain}/files/${fileMd5}`,
-            status: 'pending',
+            status: "pending",
         });
     } catch (e) {
         logger().error(`[getS3UploadUrl] ${printUserInfo(req)} URL 발급 중 에러 발생:`, e);
-        return res.status(500).json({ error: 'Presigned URL 발급 실패' });
+        return res.status(500).json({ error: "Presigned URL 발급 실패" });
     }
 }
 
@@ -123,11 +123,11 @@ export function needsOptimization(fileName) {
     const ext = path.extname(fileName).toLowerCase();
 
     // 최적화 가능한 확장자
-    const imageExts = ['.jpg', '.jpeg', '.png', '.gif'];
-    const videoExts = ['.mp4', '.mkv', '.webm', '.mov', '.avi'];
+    const imageExts = [".jpg", ".jpeg", ".png", ".gif"];
+    const videoExts = [".mp4", ".mkv", ".webm", ".mov", ".avi"];
 
     // 이미 최적화된 포맷 예외
-    if (ext === '.webp') {
+    if (ext === ".webp") {
         return false;
     }
 

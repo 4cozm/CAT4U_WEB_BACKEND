@@ -1,51 +1,51 @@
 name: Deploy API (PM2)
 
 on:
-  push:
-    branches: [ "main" ]
+    push:
+        branches: ["main"]
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
+    deploy:
+        runs-on: ubuntu-latest
 
-    steps:
-      - name: Deploy over SSH (git pull → npm ci → pm2 reload)
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.SSH_HOST }}      # 예: 34.22.81.250
-          username: ${{ secrets.SSH_USER }}  # 예: ubuntu
-          key: ${{ secrets.SSH_KEY }}        # OpenSSH 개인키 전체
-          port: ${{ secrets.SSH_PORT || 22 }}
-          script: |
-            set -Eeuo pipefail
+        steps:
+            - name: Deploy over SSH (git pull → npm ci → pm2 reload)
+              uses: appleboy/ssh-action@v1.2.0
+              with:
+                  host: ${{ secrets.SSH_HOST }} # 예: 34.22.81.250
+                  username: ${{ secrets.SSH_USER }} # 예: ubuntu
+                  key: ${{ secrets.SSH_KEY }} # OpenSSH 개인키 전체
+                  port: ${{ secrets.SSH_PORT || 22 }}
+                  script: |
+                      set -Eeuo pipefail
 
-            # 필요 도구
-            command -v git >/dev/null 2>&1 || { sudo apt-get update -y && sudo apt-get install -y git; }
-            command -v pm2 >/dev/null 2>&1 || sudo npm i -g pm2
+                      # 필요 도구
+                      command -v git >/dev/null 2>&1 || { sudo apt-get update -y && sudo apt-get install -y git; }
+                      command -v pm2 >/dev/null 2>&1 || sudo npm i -g pm2
 
-            # 레포 루트에 배포 (npm start = "node src/server.js")
-            if [ ! -d "/CAT4U_WEB_BACKEND/.git" ]; then
-              sudo mkdir -p /CAT4U_WEB_BACKEND
-              sudo chown -R "$USER:$USER" /CAT4U_WEB_BACKEND
-              git clone "https://github.com/4cozm/CAT4U_WEB_BACKEND.git" "/CAT4U_WEB_BACKEND"
-            fi
+                      # 레포 루트에 배포 (npm start = "node src/server.js")
+                      if [ ! -d "/CAT4U_WEB_BACKEND/.git" ]; then
+                        sudo mkdir -p /CAT4U_WEB_BACKEND
+                        sudo chown -R "$USER:$USER" /CAT4U_WEB_BACKEND
+                        git clone "https://github.com/4cozm/CAT4U_WEB_BACKEND.git" "/CAT4U_WEB_BACKEND"
+                      fi
 
-            cd /CAT4U_WEB_BACKEND
-            git fetch --all
-            git checkout main
-            git reset --hard origin/main
+                      cd /CAT4U_WEB_BACKEND
+                      git fetch --all
+                      git checkout main
+                      git reset --hard origin/main
 
-            export NODE_ENV=production
+                      export NODE_ENV=production
 
-            # devDeps 제외 + 모든 설치 스크립트(prepare/husky 등) 비활성화
-            npm ci --omit=dev --ignore-scripts
+                      # devDeps 제외 + 모든 설치 스크립트(prepare/husky 등) 비활성화
+                      npm ci --omit=dev --ignore-scripts
 
-            # Prisma Client만 수동 생성
-            npx prisma generate
+                      # Prisma Client만 수동 생성
+                      npx prisma generate
 
-            # PM2: 있으면 무중단 reload, 없으면 클러스터 2개로 최초 기동
-            pm2 describe cat4u-backend >/dev/null 2>&1 \
-              && pm2 reload cat4u-backend --update-env \
-              || pm2 start npm --name cat4u-backend -i 2 -- run start
+                      # PM2: 있으면 무중단 reload, 없으면 클러스터 2개로 최초 기동
+                      pm2 describe cat4u-backend >/dev/null 2>&1 \
+                        && pm2 reload cat4u-backend --update-env \
+                        || pm2 start npm --name cat4u-backend -i 2 -- run start
 
-            pm2 save
+                      pm2 save

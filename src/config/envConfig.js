@@ -1,33 +1,33 @@
 //Azure key vault에서 필요한 환경변수(비밀)을 불러옵니다
-import { DefaultAzureCredential } from '@azure/identity';
-import { SecretClient } from '@azure/keyvault-secrets';
-import env from 'dotenv';
-import ora from 'ora';
-import { getRandomLoadingMessage } from '../utils/getRandomLoadingMessage.js';
+import { DefaultAzureCredential } from "@azure/identity";
+import { SecretClient } from "@azure/keyvault-secrets";
+import env from "dotenv";
+import ora from "ora";
+import { getRandomLoadingMessage } from "../utils/getRandomLoadingMessage.js";
 env.config();
 
 const credential = new DefaultAzureCredential();
-const isDev = process.env.isDev === 'true';
+const isDev = process.env.isDev === "true";
 const url = isDev
-    ? 'https://cat4u-vault.vault.azure.net/'
-    : 'https://cat4u-web-product.vault.azure.net/';
+    ? "https://cat4u-vault.vault.azure.net/"
+    : "https://cat4u-web-product.vault.azure.net/";
 const client = new SecretClient(url, credential);
 
 //새로운 키는 여기에 추가하시면 됩니다 DEV-XXX 유형은 입력하지 않아도 됩니다.
 const secretNames = [
-    'ESI-CLIENT-ID',
-    'ESI-CLIENT-SECRET',
-    'ESI-CALLBACK-URL',
-    'ESI-SCOPE',
-    'MYSQL-IP',
-    'MYSQL-PASSWORD',
-    'DISCORD-WEBHOOK',
-    'REDIS-SESSION-SECRET', //redis 세션 보안을 위한 키
-    'JWT-SECRET',
-    'AWS-REGION',
-    'AWS-ACCESS-KEY-ID',
-    'AWS-SECRET-ACCESS-KEY',
-    'AWS-S3-BUCKET-NAME',
+    "ESI-CLIENT-ID",
+    "ESI-CLIENT-SECRET",
+    "ESI-CALLBACK-URL",
+    "ESI-SCOPE",
+    "MYSQL-IP",
+    "MYSQL-PASSWORD",
+    "DISCORD-WEBHOOK",
+    "REDIS-SESSION-SECRET", //redis 세션 보안을 위한 키
+    "JWT-SECRET",
+    "AWS-REGION",
+    "AWS-ACCESS-KEY-ID",
+    "AWS-SECRET-ACCESS-KEY",
+    "AWS-S3-BUCKET-NAME",
 ];
 
 const loadSecretsFromVault = async (useDevPrefix = false) => {
@@ -35,7 +35,7 @@ const loadSecretsFromVault = async (useDevPrefix = false) => {
         const keyVaultName = useDevPrefix ? `DEV-${name}` : name;
         try {
             const secret = await client.getSecret(keyVaultName);
-            const envKey = name.replace(/-/g, '_');
+            const envKey = name.replace(/-/g, "_");
             process.env[envKey] = secret.value;
         } catch (err) {
             console.error(
@@ -49,22 +49,22 @@ const loadSecretsFromVault = async (useDevPrefix = false) => {
 export const importVaultSecrets = async () => {
     if (isDev === undefined) {
         spinner.fail(
-            '❌ 시스템 종료 : 환경변수가 설정되지 않았습니다. 프로젝트 루트 디렉터리에 .env 파일을 생성한 뒤, isDev = true 를 입력해 주세요'
+            "❌ 시스템 종료 : 환경변수가 설정되지 않았습니다. 프로젝트 루트 디렉터리에 .env 파일을 생성한 뒤, isDev = true 를 입력해 주세요"
         );
         process.exit(1);
     }
     if (isDev === true) {
-        console.log('🖥️  개발 환경으로 실행.');
+        console.log("🖥️  개발 환경으로 실행.");
     } else if (isDev === false) {
-        console.log('👀  프로덕트 환경으로 실행. 진짜에요???');
+        console.log("👀  프로덕트 환경으로 실행. 진짜에요???");
     }
     const spinner = ora({
         text: getRandomLoadingMessage(),
-        spinner: 'dots',
+        spinner: "dots",
     }).start();
 
     await loadSecretsFromVault(isDev);
-    spinner.succeed('환경변수 로딩 완료');
+    spinner.succeed("환경변수 로딩 완료");
 };
 
 export default importVaultSecrets;

@@ -1,5 +1,5 @@
-import { S3Client } from '@aws-sdk/client-s3';
-import { logger } from '../utils/logger.js';
+import { S3Client } from "@aws-sdk/client-s3";
+import { logger } from "../utils/logger.js";
 
 let s3;
 
@@ -22,7 +22,7 @@ export function buildS3Connection() {
             },
         });
     } catch (e) {
-        logger().warn('[buildS3Connection]: AWS S3와 연결 중 에러가 발생했습니다.');
+        logger().warn("[buildS3Connection]: AWS S3와 연결 중 에러가 발생했습니다.");
         throw e;
     }
 }
@@ -43,7 +43,7 @@ export function buildS3Connection() {
  */
 export function getS3Client() {
     if (!s3) {
-        logger().warn('[getS3Client]: AWS S3 연결 객체가 없는 상태에서 요청했습니다.');
+        logger().warn("[getS3Client]: AWS S3 연결 객체가 없는 상태에서 요청했습니다.");
         return;
     }
     return s3;

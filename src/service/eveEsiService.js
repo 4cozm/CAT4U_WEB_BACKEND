@@ -1,7 +1,7 @@
 // ESI 관련 요청들은 여기에
 
-import axios from 'axios';
-import { logger } from '../utils/logger.js';
+import axios from "axios";
+import { logger } from "../utils/logger.js";
 
 /**
  *
@@ -10,7 +10,7 @@ import { logger } from '../utils/logger.js';
  */
 export async function getCharacterInfo(access_token) {
     try {
-        const response = await axios.get('https://login.eveonline.com/oauth/verify', {
+        const response = await axios.get("https://login.eveonline.com/oauth/verify", {
             headers: {
                 Authorization: `Bearer ${access_token}`,
             },
@@ -18,7 +18,7 @@ export async function getCharacterInfo(access_token) {
 
         if (!response?.data) {
             logger().info(`getCharacterInfo 결과 없음 (access_token=${access_token})`);
-            throw new Error('캐릭터 정보를 불러올 수 없음');
+            throw new Error("캐릭터 정보를 불러올 수 없음");
         }
 
         return response.data;
@@ -47,7 +47,7 @@ export async function getCharacterRole(character_id, access_token) {
 
         if (!response?.data || response.data.length === 0) {
             logger().info(`getCharacterRole 결과 없음 (character_id=${character_id})`);
-            throw new Error('캐릭터의 롤을 찾을 수 없음');
+            throw new Error("캐릭터의 롤을 찾을 수 없음");
         }
 
         return response.data;
@@ -69,7 +69,7 @@ export async function getCharacterCorpId(character_id) {
 
         if (!corpId) {
             logger().info(`코퍼레이션 정보가 없는 유저 [${character_id}]가 로그인 시도`);
-            throw new Error('가입된 코퍼레이션 찾을 수 없음');
+            throw new Error("가입된 코퍼레이션 찾을 수 없음");
         }
 
         return corpId;
