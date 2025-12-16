@@ -16,11 +16,11 @@ export const connectWithRetry = async (shutdown = false, retries = 3, delay = 20
 
     for (let i = 0; i < retries; i++) {
         try {
-            await prisma.$connect();
-            await prisma.$queryRaw`SELECT 1`;
+            await pool.$connect();
+            await pool.$queryRaw`SELECT 1`;
             connected = true;
             spinner.succeed("DB 연결 성공");
-            return prisma;
+            return pool;
         } catch (e) {
             spinner.warn(`DB 연결 실패 (${i + 1}/${retries}) - ${e.message}`);
             await new Promise(r => setTimeout(r, delay));

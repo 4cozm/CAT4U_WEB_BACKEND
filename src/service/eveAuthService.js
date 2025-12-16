@@ -5,7 +5,7 @@ import { extractTags, isAllowedCorp } from "../utils/eveRoleUtils.js";
 import { logger } from "../utils/logger.js";
 import { getCharacterCorpId, getCharacterInfo, getCharacterRole } from "./eveEsiService.js";
 import { createJwt } from "./jwtService.js";
-import prisma from "./prismaService.js";
+import { prisma } from "./prismaService.js";
 
 /**
  *
