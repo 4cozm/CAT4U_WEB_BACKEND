@@ -1,7 +1,7 @@
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import path from "path";
-import { MAX_FILE_SIZE, s3UploadTimeout, serverDomain } from "../config/serverConfig.js";
+import { getFileServerDomain, MAX_FILE_SIZE, s3UploadTimeout } from "../config/serverConfig.js";
 import { getS3Client } from "../service/awsS3Client.js";
 import { getPrisma } from "../service/prismaService.js";
 import { logger } from "../utils/logger.js";
@@ -55,7 +55,7 @@ export async function getS3UploadUrl(req, res) {
                 `[getS3UploadUrl] 중복 파일 감지- ${printUserInfo(req)} 파일명: ${fileName}, 해시: ${fileMd5}, 상태: ${existingFile.status}`
             );
             return res.json({
-                fileUrl: `${serverDomain}/files/${fileMd5}`,
+                fileUrl: `${getFileServerDomain()}/files/${fileMd5}`,
                 reused: true,
             });
         }
@@ -86,12 +86,10 @@ export async function getS3UploadUrl(req, res) {
                 status: "pending",
             },
         });
-        logger().info(
-            `[getS3UploadUrl] URL 발급 완료 - ${printUserInfo(req)}, 파일 종류: ${fileKey}`
-        );
+        logger().info(`[getS3UploadUrl] URL 발급 완료 - ${printUserInfo(req)}, 파일: ${fileName}`);
         return res.json({
             uploadUrl,
-            fileUrl: `${serverDomain}/files/${fileMd5}`,
+            fileUrl: `${getFileServerDomain()}/incoming/${fileMd5}`,
             status: "pending",
         });
     } catch (e) {
