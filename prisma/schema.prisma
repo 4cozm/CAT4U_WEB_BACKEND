@@ -28,6 +28,8 @@ model Users {
   created_at      DateTime  @default(now())
   updated_at      DateTime  @updatedAt
   Role            String?   @db.VarChar(64)
+
+  @@map("users")
 }
 
 
@@ -52,13 +54,12 @@ model File {
   size           BigInt
   s3_key         String
   s3_url         String
-  status         FileStatus @default(uploaded)  // File 테이블은 uploaded/optimized만
+  status         FileStatus @default(uploaded)
   need_optimize  Boolean    @default(true)
   ref_count      Int        @default(0)
   created_at     DateTime   @default(now())
   updated_at     DateTime   @updatedAt
 
-  // 뒤늦게 연결할 수 있도록 세션과의 선택적 관계
   sessions       UploadSession[]
 }
 
@@ -79,4 +80,5 @@ model UploadSession {
 
   @@index([file_md5, status, created_at])
   @@index([file_id])
+  @@map("uploadSession")
 }
