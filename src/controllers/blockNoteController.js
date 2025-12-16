@@ -3,7 +3,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import path from "path";
 import { MAX_FILE_SIZE, s3UploadTimeout, serverDomain } from "../config/serverConfig.js";
 import { getS3Client } from "../service/awsS3Client.js";
-import { prisma } from "../service/prismaService.js";
+import { getPrisma } from "../service/prismaService.js";
 import { logger } from "../utils/logger.js";
 import printUserInfo from "../utils/printUserInfo.js";
 
@@ -14,6 +14,7 @@ import printUserInfo from "../utils/printUserInfo.js";
  * 서버는 이를 검증 후 적절한 업로드 경로를 결정하여 Presigned URL을 반환한다.
  */
 export async function getS3UploadUrl(req, res) {
+    const prisma = getPrisma();
     try {
         const { fileName, fileSize, fileType, fileMd5 } = req.body;
 

@@ -5,7 +5,7 @@ import { extractTags, isAllowedCorp } from "../utils/eveRoleUtils.js";
 import { logger } from "../utils/logger.js";
 import { getCharacterCorpId, getCharacterInfo, getCharacterRole } from "./eveEsiService.js";
 import { createJwt } from "./jwtService.js";
-import { prisma } from "./prismaService.js";
+import { getPrisma } from "./prismaService.js";
 
 /**
  *
@@ -14,6 +14,7 @@ import { prisma } from "./prismaService.js";
  * @returns JWT Cookies
  */
 export async function processCallback(code, loginIp) {
+    const prisma = getPrisma();
     const basicAuth = Buffer.from(
         `${process.env.ESI_CLIENT_ID}:${process.env.ESI_CLIENT_SECRET}`
     ).toString("base64");
