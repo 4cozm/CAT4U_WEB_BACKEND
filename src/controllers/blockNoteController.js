@@ -7,6 +7,23 @@ import { getPrisma } from "../service/prismaService.js";
 import { logger } from "../utils/logger.js";
 import printUserInfo from "../utils/printUserInfo.js";
 
+const MIME_TO_EXT = {
+    //S3 업로드시 확장자를 일관성 있게 처리하기 위함
+    // Images
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/gif": ".gif",
+    "image/webp": ".webp",
+
+    // Videos
+    "video/mp4": ".mp4",
+    "video/webm": ".webm",
+    "video/ogg": ".ogv",
+    "video/quicktime": ".mov", // macOS/iOS 호환용
+
+    // fallback은 path.extname을 사용하거나 .bin으로 처리
+};
+
 /**
  * Presigned URL을 발급하는 컨트롤러 함수
  *
@@ -45,26 +62,37 @@ export async function getS3UploadUrl(req, res) {
             return res.status(400).json({ error: "잘못된 파일 크기 값" });
         }
 
-        const existingFile = await prisma.file.findUnique({
-            where: { file_md5: fileMd5 },
-        });
-
-        if (existingFile) {
-            // 이미 존재하는 경우 → Presigned URL 발급 안 하고 기존 URL 반환
-            logger().info(
-                `[getS3UploadUrl] 중복 파일 감지- ${printUserInfo(req)} 파일명: ${fileName}, 해시: ${fileMd5}, 상태: ${existingFile.status}`
-            );
-            return res.json({
-                fileUrl: `${getFileServerDomain()}/files/${fileMd5}`,
-                reused: true,
+        try {
+            const existingFile = await prisma.file.findUnique({
+                where: { file_md5: fileMd5 },
             });
+
+            if (existingFile) {
+                // 이미 존재하는 경우 → Presigned URL 발급 안 하고 기존 URL 반환
+                logger().info(
+                    `[getS3UploadUrl] 중복 파일 감지- ${printUserInfo(req)} 파일명: ${fileName}, 해시: ${fileMd5}, 상태: ${existingFile.status}`
+                );
+                return res.json({
+                    fileUrl: `${getFileServerDomain()}/${existingFile.s3_key}`,
+                    reused: true,
+                });
+            }
+        } catch (err) {
+            logger().warn(
+                `${printUserInfo()}  중복 파일 처리 로직 에러 :${fileMd5} , 에러문 :${err}`
+            );
+            return res.status(400).json({ error: "[서버] 중복 파일 처리 로직 에러" });
         }
 
         // 최적화 여부 판별
         const shouldOptimizeUpload = needsOptimization(fileName);
         const folder = shouldOptimizeUpload ? "incoming" : "optimized";
-        const ext = path.extname(fileName).toLowerCase();
-        const fileKey = `${folder}/${fileMd5}${ext}`; //예시 incoming/4a7d1ed414474e4033ac29ccb8653d9b.png
+        let ext = MIME_TO_EXT[fileType] || path.extname(fileName).toLowerCase();
+        if (!ext) {
+            ext = ".bin";
+        }
+
+        const fileKey = `${folder}/${fileMd5}${ext}`;
 
         // Presigned URL 발급
         const command = new PutObjectCommand({
@@ -89,7 +117,7 @@ export async function getS3UploadUrl(req, res) {
         logger().info(`[getS3UploadUrl] URL 발급 완료 - ${printUserInfo(req)}, 파일: ${fileName}`);
         return res.json({
             uploadUrl,
-            fileUrl: `${getFileServerDomain()}/incoming/${fileMd5}`,
+            fileUrl: `${getFileServerDomain()}/${folder}/${fileMd5}${ext}`,
             status: "pending",
         });
     } catch (e) {
