@@ -61,6 +61,8 @@ model File {
   updated_at     DateTime   @updatedAt
 
   sessions       UploadSession[]
+
+  @@map("file")
 }
 
 model UploadSession {
