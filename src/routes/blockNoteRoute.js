@@ -1,5 +1,5 @@
 import express from "express";
-import { getS3UploadUrl } from "../controllers/blockNoteController.js";
+import { getS3UploadUrl } from "../controllers/s3Controller.js";
 
 const blockNoteRouter = express.Router();
 

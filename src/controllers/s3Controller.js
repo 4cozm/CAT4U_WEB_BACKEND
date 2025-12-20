@@ -1,5 +1,4 @@
-import { PutObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { createPresignedPost } from "@aws-sdk/s3-presigned-post"; // 변경된 부분
 import path from "path";
 import { getFileServerDomain, MAX_FILE_SIZE, s3UploadTimeout } from "../config/serverConfig.js";
 import { getS3Client } from "../service/awsS3Client.js";
@@ -8,48 +7,33 @@ import { logger } from "../utils/logger.js";
 import printUserInfo from "../utils/printUserInfo.js";
 
 const MIME_TO_EXT = {
-    //S3 업로드시 확장자를 일관성 있게 처리하기 위함
-    // Images
     "image/jpeg": ".jpg",
     "image/png": ".png",
     "image/gif": ".gif",
     "image/webp": ".webp",
-
-    // Videos
     "video/mp4": ".mp4",
     "video/webm": ".webm",
     "video/ogg": ".ogv",
-    "video/quicktime": ".mov", // macOS/iOS 호환용
-
-    // fallback은 path.extname을 사용하거나 .bin으로 처리
+    "video/quicktime": ".mov",
 };
 
-/**
- * Presigned URL을 발급하는 컨트롤러 함수
- *
- * 클라이언트에서 fileName, fileSize, fileType, fileMd5 메타데이터를 보내오고
- * 서버는 이를 검증 후 적절한 업로드 경로를 결정하여 Presigned URL을 반환한다.
- */
 export async function getS3UploadUrl(req, res) {
     const prisma = getPrisma();
     try {
         const { fileName, fileSize, fileType, fileMd5 } = req.body;
 
-        // 필수 값 검증
         if (!fileName || !fileSize || !fileType || !fileMd5) {
             return res
                 .status(400)
                 .json({ error: "fileName, fileSize, fileType, fileMd5 모두 필요합니다." });
         }
 
-        //md5 검증 단, 대부분 개발자의 실수이므로 리젝트 하지는 않음
         if (!isValidMd5(fileMd5)) {
             logger().error(
                 `[getS3UploadUrl] 잘못된 MD5 형식:${printUserInfo(req)} 해시: ${fileMd5}`
             );
         }
 
-        // 파일 크기 검증
         try {
             const tooLarge = isFileTooLarge(fileSize);
             if (tooLarge) {
@@ -57,7 +41,7 @@ export async function getS3UploadUrl(req, res) {
             }
         } catch (err) {
             logger().info(
-                `${printUserInfo()} 잘못된 파일 크기 값 업로드 :${fileSize} , 에러문 :${err}`
+                `${printUserInfo(req)} 잘못된 파일 크기 값 업로드 :${fileSize} , 에러문 :${err}`
             );
             return res.status(400).json({ error: "잘못된 파일 크기 값" });
         }
@@ -68,23 +52,21 @@ export async function getS3UploadUrl(req, res) {
             });
 
             if (existingFile) {
-                // 이미 존재하는 경우 → Presigned URL 발급 안 하고 기존 URL 반환
                 logger().info(
-                    `[getS3UploadUrl] 중복 파일 감지- ${printUserInfo(req)} 파일명: ${fileName}, 해시: ${fileMd5}, 상태: ${existingFile.status}`
+                    `[getS3UploadUrl] 중복 파일 감지- ${printUserInfo(req)} 파일명: ${fileName}, 해시: ${fileMd5}`
                 );
-                return res.json({
-                    fileUrl: `${getFileServerDomain()}/${existingFile.s3_key}`,
+                return res.status(200).json({
+                    fileUrl: existingFile.s3_url,
                     reused: true,
                 });
             }
         } catch (err) {
             logger().warn(
-                `${printUserInfo()}  중복 파일 처리 로직 에러 :${fileMd5} , 에러문 :${err}`
+                `${printUserInfo(req)}[getS3UploadUrl] 로직 에러. 파일명:${fileMd5} , 에러문 :${err}`
             );
-            return res.status(400).json({ error: "[서버] 중복 파일 처리 로직 에러" });
+            return res.status(400).json({ error: "[getS3UploadUrl] 로직 에러" });
         }
 
-        // 최적화 여부 판별
         const shouldOptimizeUpload = needsOptimization(fileName);
         const folder = shouldOptimizeUpload ? "incoming" : "optimized";
         let ext = MIME_TO_EXT[fileType] || path.extname(fileName).toLowerCase();
@@ -94,30 +76,43 @@ export async function getS3UploadUrl(req, res) {
 
         const fileKey = `${folder}/${fileMd5}${ext}`;
 
-        // Presigned URL 발급
-        const command = new PutObjectCommand({
+        // S3가 직접 검증할 조건 설정
+        const { url, fields } = await createPresignedPost(getS3Client(), {
             Bucket: process.env.AWS_S3_BUCKET_NAME,
             Key: fileKey,
-            ContentType: fileType,
+            Conditions: [
+                ["content-length-range", 0, MAX_FILE_SIZE], // S3 레벨에서 파일 크기 강제 검증
+                ["eq", "$Content-Type", fileType], // 요청한 타입과 실제 업로드 타입 일치 확인
+            ],
+            Fields: {
+                "Content-Type": fileType,
+            },
+            Expires: s3UploadTimeout,
         });
 
-        const uploadUrl = await getSignedUrl(getS3Client(), command, {
-            expiresIn: s3UploadTimeout,
-        });
+        const bigIntFileSize = BigInt(fileSize);
+        const userId = BigInt(req.user.characterId);
+
         await prisma.uploadSession.create({
             data: {
                 file_md5: fileMd5,
                 original_name: fileName,
                 extension: ext,
-                size: fileSize,
+                size: bigIntFileSize,
                 s3_key: fileKey,
                 status: "pending",
+                user_id: userId,
             },
         });
-        logger().info(`[getS3UploadUrl] URL 발급 완료 - ${printUserInfo(req)}, 파일: ${fileName}`);
+
+        logger().info(
+            `[getS3UploadUrl] POST URL 발급 완료 - ${printUserInfo(req)}, 파일: ${fileName} , MD5: ${fileMd5}`
+        );
+
         return res.json({
-            uploadUrl,
-            fileUrl: `${getFileServerDomain()}/${folder}/${fileMd5}${ext}`,
+            uploadUrl: url, // 클라이언트가 POST 보낼 주소
+            fields, // 클라이언트가 FormData에 담아야 할 인증 정보들
+            fileUrl: `${getFileServerDomain()}/${fileKey}`,
             status: "pending",
         });
     } catch (e) {
@@ -126,12 +121,6 @@ export async function getS3UploadUrl(req, res) {
     }
 }
 
-/**
- * 파일이 최대 허용 용량(1GB)을 초과하는지 확인
- *
- * @param {string|number} fileSize - 파일 크기 (bytes)
- * @returns {boolean} true = 업로드 불가 (1GB 초과), false = 업로드 가능
- */
 export function isFileTooLarge(fileSize) {
     const size = Number(fileSize);
     if (isNaN(size)) {
@@ -140,41 +129,16 @@ export function isFileTooLarge(fileSize) {
     return size > MAX_FILE_SIZE;
 }
 
-/**
- * 파일이 최적화 대상인지 확인
- *
- * @param {string} fileName - 원본 파일 이름
- * @returns {boolean} true = 최적화 필요 (incoming), false = 최적화 불필요 (optimized)
- */
 export function needsOptimization(fileName) {
     const ext = path.extname(fileName).toLowerCase();
-
-    // 최적화 가능한 확장자
-    const imageExts = [".jpg", ".jpeg", ".png", ".gif"];
-    const videoExts = [".mp4", ".mkv", ".webm", ".mov", ".avi"];
-
-    // 이미 최적화된 포맷 예외
     if (ext === ".webp") {
         return false;
     }
-
-    // 비디오는 컨테이너 기준으로만 판단 (내부 코덱은 Lambda 단계에서 판별)
-    if (videoExts.includes(ext)) {
-        return true;
-    }
-
-    // 이미지는 webp 제외하고는 최적화 대상으로
-    if (imageExts.includes(ext)) {
-        return true;
-    }
-
-    // 그 외(PDF, ZIP 등)는 최적화 불필요
-    return false;
+    const imageExts = [".jpg", ".jpeg", ".png", ".gif"];
+    const videoExts = [".mp4", ".mkv", ".webm", ".mov", ".avi"];
+    return videoExts.includes(ext) || imageExts.includes(ext);
 }
 
-/**
- * 파일이 MD5 해싱이 맞는지 검증
- */
 function isValidMd5(value) {
     return /^[a-f0-9]{32}$/i.test(value);
 }
