@@ -17,5 +17,9 @@ export async function createApp() {
     app.use(express.urlencoded({ extended: true }));
 
     app.use("/api", router);
+
+    app.set("json replacer", (key, value) =>
+        typeof value === "bigint" ? value.toString() : value
+    );
     return app;
 }
