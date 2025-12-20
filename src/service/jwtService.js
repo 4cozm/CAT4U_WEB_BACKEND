@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken';
+import jwt from "jsonwebtoken";
 
 export function createJwt(characterId, nickname, roles) {
     try {
@@ -10,7 +10,7 @@ export function createJwt(characterId, nickname, roles) {
                 iat: Date.now(),
             },
             process.env.JWT_SECRET,
-            { expiresIn: '1d' }
+            { expiresIn: "1d" }
         );
         return token;
     } catch (e) {

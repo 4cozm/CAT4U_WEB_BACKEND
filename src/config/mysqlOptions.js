@@ -1,9 +1,8 @@
 export const getMysqlOptions = () => ({
-    host: process.env.MYSQL_HOST,
-    user: 'root',
+    host: process.env.MYSQL_IP,
+    port: 3306,
+    user: "root",
     password: process.env.MYSQL_PASSWORD,
-    database: process.env.DB_NAME,
-    waitForConnections: true,
+    database: "default",
     connectionLimit: 10,
-    queueLimit: 0,
 });

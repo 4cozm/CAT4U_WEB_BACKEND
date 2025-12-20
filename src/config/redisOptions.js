@@ -1,5 +1,5 @@
 export const getRedisOptions = () => ({
-    url: 'redis://localhost:6379',
+    url: "redis://localhost:6379",
     socket: {
         reconnectStrategy: retries => {
             // 재시도 간격 = 100ms * 시도 횟수 (최대 3초)

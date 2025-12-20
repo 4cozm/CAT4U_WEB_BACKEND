@@ -1,9 +1,9 @@
-import session from 'express-session';
-import { getSessionConfig } from '../config/serverConfig.js';
-import { getRedisClient } from '../service/redisService.js';
+import session from "express-session";
+import { getSessionConfig } from "../config/serverConfig.js";
+import { getRedisClient } from "../service/redisService.js";
 
 export async function createSessionMiddleware() {
-    const { RedisStore } = await import('connect-redis');
+    const { RedisStore } = await import("connect-redis");
     const { TTL, COOKIE_OPTIONS } = getSessionConfig();
     const redisClient = getRedisClient();
 

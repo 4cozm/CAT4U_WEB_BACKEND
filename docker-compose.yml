@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
     mysql:
@@ -9,7 +9,7 @@ services:
             MYSQL_ROOT_PASSWORD: rootpass
             MYSQL_DATABASE: default
         ports:
-            - '127.0.0.1:3306:3306'
+            - "127.0.0.1:3306:3306"
         volumes:
             - mysql_data:/var/lib/mysql
             - ./src/models/initScheme.sql:/docker-entrypoint-initdb.d/initScheme.sql:ro
@@ -21,8 +21,8 @@ services:
         container_name: Web4U-redis
         restart: unless-stopped
         ports:
-            - '127.0.0.1:6379:6379'
-        command: ['redis-server', '--appendonly', 'yes']
+            - "127.0.0.1:6379:6379"
+        command: ["redis-server", "--appendonly", "yes"]
         networks:
             - cat4u-net
 

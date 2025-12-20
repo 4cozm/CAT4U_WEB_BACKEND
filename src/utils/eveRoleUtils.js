@@ -1,4 +1,4 @@
-import { ALLOWED_CORP_ID, ALLOWED_EDIT_ROLE, ALLOWED_WRITE_ROLE } from '../config/serverConfig.js';
+import { ALLOWED_CORP_ID, ALLOWED_EDIT_ROLE, ALLOWED_WRITE_ROLE } from "../config/serverConfig.js";
 /**
  * ESI로 가져온 title(Role)을 가공해서 문자열로 반환
  * @param {*} rawTitleArr <color=0xffFFD228><b>새끼 고양이</color></b>
@@ -6,18 +6,18 @@ import { ALLOWED_CORP_ID, ALLOWED_EDIT_ROLE, ALLOWED_WRITE_ROLE } from '../confi
  */
 export function extractTags(rawTitleArr) {
     if (!Array.isArray(rawTitleArr)) {
-        return '';
+        return "";
     }
     return rawTitleArr
         .map(t =>
-            typeof t === 'string'
-                ? t.replace(/<[^>]+>/g, '').trim()
+            typeof t === "string"
+                ? t.replace(/<[^>]+>/g, "").trim()
                 : t.name
-                  ? t.name.replace(/<[^>]+>/g, '').trim()
-                  : ''
+                  ? t.name.replace(/<[^>]+>/g, "").trim()
+                  : ""
         )
         .filter(Boolean) // 빈 값 제거
-        .join(', ');
+        .join(", ");
 }
 
 /**
@@ -31,7 +31,7 @@ export function isAllowedWriteRole(inputStr) {
         return false;
     }
     const titles = inputStr
-        .split(',')
+        .split(",")
         .map(s => s.trim())
         .filter(Boolean);
 
@@ -49,7 +49,7 @@ export function isAllowedEditRole(inputStr) {
         return false;
     }
     const titles = inputStr
-        .split(',')
+        .split(",")
         .map(s => s.trim())
         .filter(Boolean);
 
