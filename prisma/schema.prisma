@@ -50,7 +50,7 @@ enum UploadStatus {
 model Board {
   id              BigInt    @id @default(autoincrement())
   type            BoardType
-  character_id    BigInt   
+  nickname        String   
   board_title     String    @db.VarChar(200)
   board_content   Json
   create_dt       DateTime  @default(now())
@@ -68,8 +68,10 @@ model Board {
   // 관리자가 수정했을 경우를 대비해 마지막으로 손댄 사람의 character_id를 기록합니다.
   last_editor_id  BigInt?   
 
-  user            Users     @relation("UserBoards", fields: [character_id], references: [character_id], onDelete: Cascade)
+  user            Users     @relation("UserBoards", fields: [nickname], references: [nickname], onDelete: Cascade)
   histories       BoardHistory[]
+
+  @@index([id, type])
   @@index([type, create_dt])
   @@index([is_deleted]) // TODO 백엔드에서 주기적으로 삭제후 일정 기간이 지난 글은 DB에서 비워주는 cron 작업 필요 
   @@map("board")
