@@ -48,18 +48,46 @@ enum UploadStatus {
 }
 
 model Board {
-  id             BigInt   @id @default(autoincrement()) // PK
-  type           BoardType
-  character_id   BigInt 
-  board_title    String   @db.VarChar(200)
-  board_content  Json                  
-  create_dt      DateTime @default(now())               
-  recommend_cnt  Int      @default(0)
+  id              BigInt    @id @default(autoincrement())
+  type            BoardType
+  character_id    BigInt   
+  board_title     String    @db.VarChar(200)
+  board_content   Json
+  create_dt       DateTime  @default(now())
+  recommend_cnt   Int       @default(0)
+  
+  // 1. 삭제 여부 (Soft Delete): 0(정상), 1(삭제됨) 등으로 관리
+  // 개발자가 직접 백업하거나 복구할 때 사용
+  is_deleted      Int       @default(0) @db.TinyInt
 
-  user Users @relation("UserBoards", fields: [character_id], references: [character_id], onDelete: Cascade)
+  // 2. 최종 수정일 (Issued/Updated Date)
+  // @updatedAt을 붙이면 데이터가 수정될 때마다 Prisma가 자동으로 현재 시간을 기록
+  updated_dt      DateTime  @updatedAt
 
+  // 3. 최종 수정자 정보
+  // 관리자가 수정했을 경우를 대비해 마지막으로 손댄 사람의 character_id를 기록합니다.
+  last_editor_id  BigInt?   
+
+  user            Users     @relation("UserBoards", fields: [character_id], references: [character_id], onDelete: Cascade)
+  histories       BoardHistory[]
   @@index([type, create_dt])
-  @@map("board") 
+  @@index([is_deleted]) // TODO 백엔드에서 주기적으로 삭제후 일정 기간이 지난 글은 DB에서 비워주는 cron 작업 필요 
+  @@map("board")
+}
+
+model BoardHistory {
+  id              BigInt   @id @default(autoincrement())
+  board_id        BigInt   // 원본 게시글 ID
+  prev_title      String   @db.VarChar(200)
+  prev_content    Json
+  editor_id       BigInt   // 수정한 사람의 ID
+  edit_dt         DateTime @default(now()) // 수정된 일시
+
+
+  board           Board    @relation(fields: [board_id], references: [id], onDelete: Restrict)
+
+  @@index([board_id])
+  @@map("board_history")
 }
 
 model File {
