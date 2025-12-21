@@ -10,6 +10,11 @@ import { importVaultSecrets } from "./envConfig.js";
 
 export default async function initializeServer() {
     try {
+        BigInt.prototype.toJSON = function () {
+            //DB의 Big Int 자동 변환
+            return this.toString();
+        };
+
         await ensureEnvWithDefaults(); //env 자동 설정
         await importVaultSecrets(); // Azure Key Vault 로드
         await setDiscordHook(); // Discord Hook 초기화
