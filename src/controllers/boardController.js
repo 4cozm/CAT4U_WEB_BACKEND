@@ -50,7 +50,6 @@ export const createBoard = async (req, res) => {
         // 4. 서비스 호출
         const created = await createBoardService(req.user, req.body);
 
-        // BigInt 직렬화 대응 (Service에서 안했다면 여기서 toString 처리 권장)
         const responseData = {
             ...created,
             id: created.id.toString(),
