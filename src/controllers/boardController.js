@@ -2,6 +2,7 @@ import { createBoardService } from "../service/boardService.js";
 import { getPrisma } from "../service/prismaService.js";
 import { logger } from "../utils/logger.js";
 import printUserInfo from "../utils/printUserInfo.js";
+
 const ALLOWED_TYPES = ["GUIDE", "DOCTRINE", "FITTING", "MARKET"];
 
 /**
@@ -29,7 +30,6 @@ export const createBoard = async (req, res) => {
         try {
             const parsedContent = JSON.parse(board_content || "[]");
 
-            // 텍스트 내용이 있거나, 이미지/파일 등 다른 타입의 블록이 있는지 확인
             const hasActualContent = parsedContent.some(block => {
                 // 텍스트가 있는 경우
                 const hasText = block.content?.some(

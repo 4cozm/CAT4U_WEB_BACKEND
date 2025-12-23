@@ -2,7 +2,7 @@ import { getPrisma } from "./prismaService.js";
 
 export async function createBoardService(user, payload) {
     try {
-        const { type, board_title, board_content } = payload ?? {};
+        const { type, board_title, board_content, board_content_html } = payload ?? {};
 
         const prisma = getPrisma();
         const created = await prisma.board.create({
@@ -10,6 +10,7 @@ export async function createBoardService(user, payload) {
                 type,
                 board_title: board_title.trim(),
                 board_content,
+                content_html: board_content_html,
                 user: {
                     connect: {
                         nickname: user.nickName,
