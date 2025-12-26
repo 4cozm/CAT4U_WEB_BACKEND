@@ -1,101 +1,101 @@
 name: Deploy Backend (SSH)
 
 on:
-    push:
-        branches: [main]
-    workflow_dispatch:
+  push:
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
-    deploy:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Deploy over SSH (minimal update to prisma and pm2)
-              uses: appleboy/ssh-action@v1.2.0
-              env:
-                  DATABASE_URL: ${{ secrets.DATABASE_URL }}
-              with:
-                  host: ${{ secrets.SSH_HOST }}
-                  username: ${{ secrets.SSH_USER }}
-                  key: ${{ secrets.SSH_KEY }}
-                  port: ${{ secrets.SSH_PORT || 22 }}
-                  envs: DATABASE_URL
-                  script: |
-                      set -euo pipefail
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH (minimal update to prisma and pm2)
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          envs: DATABASE_URL
+          script: |
+            set -euo pipefail
 
-                      APP_DIR="$HOME/CAT4U_WEB_BACKEND"
-                      REPO="https://github.com/4cozm/CAT4U_WEB_BACKEND.git"
-                      BRANCH="main"
-                      PROC="cat4u-backend"
+            APP_DIR="$HOME/CAT4U_WEB_BACKEND"
+            REPO="https://github.com/4cozm/CAT4U_WEB_BACKEND.git"
+            BRANCH="main"
+            PROC="cat4u-backend"
 
-                      echo "DATABASE_URL set? ${DATABASE_URL:+yes}"
+            echo "DATABASE_URL set? ${DATABASE_URL:+yes}"
 
-                      command -v git >/dev/null 2>&1 || { sudo apt-get update -y && sudo apt-get install -y git; }
-                      command -v pm2 >/dev/null 2>&1 || sudo npm i -g pm2
+            command -v git >/dev/null 2>&1 || { sudo apt-get update -y && sudo apt-get install -y git; }
+            command -v pm2 >/dev/null 2>&1 || sudo npm i -g pm2
 
-                      mkdir -p "$APP_DIR"
-                      if [ ! -d "$APP_DIR/.git" ]; then
-                        git clone --branch "$BRANCH" --depth 1 "$REPO" "$APP_DIR"
-                      fi
+            mkdir -p "$APP_DIR"
+            if [ ! -d "$APP_DIR/.git" ]; then
+              git clone --branch "$BRANCH" --depth 1 "$REPO" "$APP_DIR"
+            fi
 
-                      cd "$APP_DIR"
+            cd "$APP_DIR"
 
-                      git config --local core.hooksPath /dev/null || true
-                      export HUSKY=0
-                      export HUSKY_SKIP_INSTALL=1
+            git config --local core.hooksPath /dev/null || true
+            export HUSKY=0
+            export HUSKY_SKIP_INSTALL=1
 
-                      git remote set-url origin "$REPO"
-                      git fetch origin "$BRANCH" --depth 1
-                      git checkout "$BRANCH"
-                      git reset --hard "origin/$BRANCH"
+            git remote set-url origin "$REPO"
+            git fetch origin "$BRANCH" --depth 1
+            git checkout "$BRANCH"
+            git reset --hard "origin/$BRANCH"
 
-                      export NODE_ENV=production
-                      npm ci --ignore-scripts
+            export NODE_ENV=production
+            npm ci --ignore-scripts
 
-                      npx prisma generate
-                      if [ -d prisma/migrations ] && [ "$(ls -A prisma/migrations)" ]; then
-                        npx prisma migrate deploy
-                      fi
+            npx prisma generate
+            if [ -d prisma/migrations ] && [ "$(ls -A prisma/migrations)" ]; then
+              npx prisma migrate deploy
+            fi
 
-                      pm2 describe "$PROC" >/dev/null 2>&1 \
-                        && pm2 reload "$PROC" --update-env \
-                        || pm2 start npm --name "$PROC" -i max -- run start
+            pm2 describe "$PROC" >/dev/null 2>&1 \
+              && pm2 reload "$PROC" --update-env \
+              || pm2 start npm --name "$PROC" -i max -- run start
 
-                      pm2 save
+            pm2 save
 
-            - name: Notify Discord (Success, main)
-              if: success()
-              env:
-                  WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
-              run: |
-                  SHA_SHORT="${GITHUB_SHA::7}"
-                  cat > payload.json <<'JSON'
-                  {
-                    "embeds": [{
-                      "title": "🚀 main 배포 성공 (Backend via SSH)",
-                      "description": "리포지토리: ${REPO}\n커밋: ${SHA}\n런: ${RUN_URL}",
-                      "color": 5763719
-                    }]}
-                  JSON
-                  sed -i "s|\${REPO}|${GITHUB_REPOSITORY}|g" payload.json
-                  sed -i "s|\${SHA}|${SHA_SHORT}|g" payload.json
-                  sed -i "s|\${RUN_URL}|https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|g" payload.json
-                  curl -H "Content-Type: application/json" -X POST -d @payload.json "$WEBHOOK"
+      - name: Notify Discord (Success, main)
+        if: success()
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          SHA_SHORT="${GITHUB_SHA::7}"
+          cat > payload.json <<'JSON'
+          {
+            "embeds": [{
+              "title": "🚀 main 배포 성공 (Backend via SSH)",
+              "description": "리포지토리: ${REPO}\n커밋: ${SHA}\n런: ${RUN_URL}",
+              "color": 5763719
+            }]}
+          JSON
+          sed -i "s|\${REPO}|${GITHUB_REPOSITORY}|g" payload.json
+          sed -i "s|\${SHA}|${SHA_SHORT}|g" payload.json
+          sed -i "s|\${RUN_URL}|https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|g" payload.json
+          curl -H "Content-Type: application/json" -X POST -d @payload.json "$WEBHOOK"
 
-            - name: Notify Discord (Failure, main)
-              if: failure()
-              env:
-                  WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
-              run: |
-                  SHA_SHORT="${GITHUB_SHA::7}"
-                  cat > payload.json <<'JSON'
-                  {
-                    "embeds": [{
-                      "title": "🔥 main 배포 실패 (Backend)",
-                      "description": "리포지토리: ${REPO}\n커밋: ${SHA}\n런: ${RUN_URL}",
-                      "color": 15548997
-                    }]}
-                  JSON
-                  sed -i "s|\${REPO}|${GITHUB_REPOSITORY}|g" payload.json
-                  sed -i "s|\${SHA}|${SHA_SHORT}|g" payload.json
-                  sed -i "s|\${RUN_URL}|https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|g" payload.json
-                  curl -H "Content-Type: application/json" -X POST -d @payload.json "$WEBHOOK"
+      - name: Notify Discord (Failure, main)
+        if: failure()
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          SHA_SHORT="${GITHUB_SHA::7}"
+          cat > payload.json <<'JSON'
+          {
+            "embeds": [{
+              "title": "🔥 main 배포 실패 (Backend)",
+              "description": "리포지토리: ${REPO}\n커밋: ${SHA}\n런: ${RUN_URL}",
+              "color": 15548997
+            }]}
+          JSON
+          sed -i "s|\${REPO}|${GITHUB_REPOSITORY}|g" payload.json
+          sed -i "s|\${SHA}|${SHA_SHORT}|g" payload.json
+          sed -i "s|\${RUN_URL}|https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|g" payload.json
+          curl -H "Content-Type: application/json" -X POST -d @payload.json "$WEBHOOK"
