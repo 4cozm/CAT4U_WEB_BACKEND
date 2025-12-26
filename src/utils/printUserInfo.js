@@ -6,6 +6,9 @@
  * @throws {Error} 유저 정보가 없거나 필드가 누락된 경우
  */
 export default function printUserInfo(req) {
+    if (!req) {
+        throw new Error("함수 필수 매개변수 누락");
+    }
     const user = req.user;
     if (!user) {
         throw new Error("유저 정보 없음");

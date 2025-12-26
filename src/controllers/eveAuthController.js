@@ -1,8 +1,8 @@
 import { getSessionConfig } from "../config/serverConfig.js";
 import { processCallback } from "../service/eveAuthService.js";
+import { isAllowedEditRole } from "../utils/eveRoleUtils.js";
 import getRandomUuid from "../utils/getRandomUuid.js";
 import { logger } from "../utils/logger.js";
-
 /**
  * EVE 로그인 페이지로 리디렉션하는 컨트롤러
  */
@@ -77,7 +77,7 @@ export async function handleCallback(req, res) {
 
 export async function handleAuthCheck(req, res) {
     try {
-        const { characterId, nickName } = req.user;
+        const { characterId, nickName, roles } = req.user;
         const portraitUrl = `https://images.evetech.net/characters/${characterId}/portrait?size=128`;
 
         res.json({
@@ -85,6 +85,7 @@ export async function handleAuthCheck(req, res) {
             id: characterId,
             name: nickName,
             portrait: portraitUrl,
+            admin: isAllowedEditRole(roles),
         });
     } catch (err) {
         console.error(err);
