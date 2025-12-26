@@ -1,11 +1,11 @@
-import axios from 'axios';
-import { Buffer } from 'buffer';
-import { URLSearchParams } from 'url';
-import { extractTags, isAllowedCorp } from '../utils/eveRoleUtils.js';
-import { logger } from '../utils/logger.js';
-import { getCharacterCorpId, getCharacterInfo, getCharacterRole } from './eveEsiService.js';
-import { createJwt } from './jwtService.js';
-import prisma from './prismaService.js';
+import axios from "axios";
+import { Buffer } from "buffer";
+import { URLSearchParams } from "url";
+import { extractTags, isAllowedCorp } from "../utils/eveRoleUtils.js";
+import { logger } from "../utils/logger.js";
+import { getCharacterCorpId, getCharacterInfo, getCharacterRole } from "./eveEsiService.js";
+import { createJwt } from "./jwtService.js";
+import { getPrisma } from "./prismaService.js";
 
 /**
  *
@@ -14,23 +14,24 @@ import prisma from './prismaService.js';
  * @returns JWT Cookies
  */
 export async function processCallback(code, loginIp) {
+    const prisma = getPrisma();
     const basicAuth = Buffer.from(
         `${process.env.ESI_CLIENT_ID}:${process.env.ESI_CLIENT_SECRET}`
-    ).toString('base64');
+    ).toString("base64");
 
     let tokenData;
     try {
         const tokenResponse = await axios.post(
-            'https://login.eveonline.com/v2/oauth/token',
+            "https://login.eveonline.com/v2/oauth/token",
             new URLSearchParams({
-                grant_type: 'authorization_code',
+                grant_type: "authorization_code",
                 code,
                 redirect_uri: process.env.ESI_CALLBACK_URL,
             }),
             {
                 headers: {
                     Authorization: `Basic ${basicAuth}`,
-                    'Content-Type': 'application/x-www-form-urlencoded',
+                    "Content-Type": "application/x-www-form-urlencoded",
                 },
             }
         );
@@ -84,7 +85,7 @@ export async function processCallback(code, loginIp) {
 
         const token = createJwt(character.CharacterID, character.CharacterName, extractRole);
 
-        logger().info('DB에 유저 정보 저장/업데이트 완료', { 닉네임: character.CharacterName });
+        logger().info("DB에 유저 정보 저장/업데이트 완료", { 닉네임: character.CharacterName });
         return token;
     } catch (err) {
         const msg = err.response?.data || err.message;

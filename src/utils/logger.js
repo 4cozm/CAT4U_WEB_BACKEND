@@ -1,10 +1,10 @@
-import fs from 'fs';
-import winston from 'winston';
-import winstonDaily from 'winston-daily-rotate-file';
-import Transport from 'winston-transport';
-import SendDiscordMsg from './SendDiscordMsg.js';
+import fs from "fs";
+import winston from "winston";
+import winstonDaily from "winston-daily-rotate-file";
+import Transport from "winston-transport";
+import SendDiscordMsg from "./SendDiscordMsg.js";
 
-const isDev = process.env.isDev === 'true';
+const isDev = process.env.isDev === "true";
 
 const log_dir = `${process.cwd()}/logs`; // 로그 폴더 경로 설정
 
@@ -18,14 +18,14 @@ class DiscordTransport extends Transport {
     log(info, callback) {
         setTimeout(async () => {
             try {
-                if (info.level === 'warn') {
+                if (info.level === "warn") {
                     await SendDiscordMsg(info.message, {
-                        Title: '경고',
-                        Color: 'yellow',
+                        Title: "경고",
+                        Color: "yellow",
                     });
                 }
             } catch (e) {
-                console.error('DiscordTransport Error:', e);
+                console.error("DiscordTransport Error:", e);
             }
             callback();
         }, 0);
@@ -35,10 +35,10 @@ class DiscordTransport extends Transport {
 function createLogger() {
     if (!isDev) {
         return {
-            info: (...args) => console.log('[INFO]', ...args),
-            warn: (...args) => console.warn('[WARN]', ...args),
-            error: (...args) => console.error('[ERROR]', ...args),
-            debug: (...args) => console.debug('[DEBUG]', ...args),
+            info: (...args) => console.log("[INFO]", ...args),
+            warn: (...args) => console.warn("[WARN]", ...args),
+            error: (...args) => console.error("[ERROR]", ...args),
+            debug: (...args) => console.debug("[DEBUG]", ...args),
         };
     }
     if (!fs.existsSync(log_dir)) {
@@ -46,28 +46,28 @@ function createLogger() {
     }
 
     return winston.createLogger({
-        level: 'info',
+        level: "info",
         format: winston.format.combine(
-            winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+            winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
             winston.format.printf(
                 ({ level, message, timestamp }) => `${timestamp} ${level}: ${message}`
             )
         ),
         transports: [
             new winstonDaily({
-                level: 'info',
-                datePattern: 'YYYY-MM-DD',
+                level: "info",
+                datePattern: "YYYY-MM-DD",
                 dirname: log_dir,
-                filename: '%DATE%.log',
-                maxSize: '5m',
+                filename: "%DATE%.log",
+                maxSize: "5m",
                 maxFiles: 5,
             }),
             new winstonDaily({
-                level: 'error',
-                datePattern: 'YYYY-MM-DD',
+                level: "error",
+                datePattern: "YYYY-MM-DD",
                 dirname: log_dir,
-                filename: '%DATE%.error.log',
-                maxSize: '5m',
+                filename: "%DATE%.error.log",
+                maxSize: "5m",
                 maxFiles: 3,
             }),
             new DiscordTransport(),

@@ -1,7 +1,7 @@
-import { getSessionConfig } from '../config/serverConfig.js';
-import { processCallback } from '../service/eveAuthService.js';
-import getRandomUuid from '../utils/getRandomUuid.js';
-import { logger } from '../utils/logger.js';
+import { getSessionConfig } from "../config/serverConfig.js";
+import { processCallback } from "../service/eveAuthService.js";
+import getRandomUuid from "../utils/getRandomUuid.js";
+import { logger } from "../utils/logger.js";
 
 /**
  * EVE 로그인 페이지로 리디렉션하는 컨트롤러
@@ -20,7 +20,7 @@ export function redirectToEveLogin(req, res) {
 
     logger().info(`[EVE ESI] state 생성 및 리디렉션: ${state}, ip=${req.ip}`);
 
-    res.redirect(authorizeUrl);
+    return res.status(401).json({ url: authorizeUrl });
 }
 
 /**
@@ -36,41 +36,58 @@ export async function handleCallback(req, res) {
 
     if (!code) {
         logger().warn(
-            `[EVE ESI][콜백] code 없음 | ip=${req.ip} | state=${state} | sessionState=${savedState} | ua=${req.headers['user-agent']}`
+            `[EVE ESI][콜백] code 없음 | ip=${req.ip} | state=${state} | sessionState=${savedState} | ua=${req.headers["user-agent"]}`
         );
-        return res.status(400).send('코드 없음');
+        return res.status(400).send("코드 없음");
     }
     if (!state) {
         logger().warn(
-            `[EVE ESI][콜백] state 없음 | ip=${req.ip} | code=${code} | sessionState=${savedState} | ua=${req.headers['user-agent']}`
+            `[EVE ESI][콜백] state 없음 | ip=${req.ip} | code=${code} | sessionState=${savedState} | ua=${req.headers["user-agent"]}`
         );
-        return res.status(400).send('state 없음');
+        return res.status(400).send("state 없음");
     }
     if (!savedState) {
         logger().warn(
-            `[EVE ESI][콜백] 세션 state 없음 | ip=${req.ip} | code=${code} | state=${state} | ua=${req.headers['user-agent']}`
+            `[EVE ESI][콜백] 세션 state 없음 | ip=${req.ip} | code=${code} | state=${state} | ua=${req.headers["user-agent"]}`
         );
-        return res.status(400).send('세션 state 없음');
+        return res.status(400).send("세션 state 없음");
     }
     if (state !== savedState) {
         logger().warn(
-            `[EVE ESI][콜백] state 불일치 | ip=${req.ip} | code=${code} | state=${state} | sessionState=${savedState} | ua=${req.headers['user-agent']}`
+            `[EVE ESI][콜백] state 불일치 | ip=${req.ip} | code=${code} | state=${state} | sessionState=${savedState} | ua=${req.headers["user-agent"]}`
         );
-        return res.status(403).send('state 불일치');
+        return res.status(403).send("state 불일치");
     }
 
     try {
         const token = await processCallback(code, req.ip);
 
         const redirectUrl =
-            process.env.isDev === 'true' ? 'http://127.0.0.1:3000/' : 'https://web.cat4u.store';
+            process.env.isDev === "true" ? "http://127.0.0.1:4000/" : "https://web.cat4u.store";
         const cookieOption = getSessionConfig();
-        res.cookie('access_token', token, cookieOption.COOKIE_OPTIONS);
-        logger().info('[EVE ESI] JWT 발급 성공', req.ip);
+        res.cookie("access_token", token, cookieOption.COOKIE_OPTIONS);
+        logger().info("[EVE ESI] JWT 발급 성공", req.ip);
 
         res.redirect(redirectUrl);
     } catch (err) {
         logger().warn(`[EVE ESI][콜백] 로그인 중 에러 발생 ${err} | ${req.ip}`);
-        res.status(500).send('서버 문제로 인한 로그인 실패');
+        res.status(500).send("서버 문제로 인한 로그인 실패");
+    }
+}
+
+export async function handleAuthCheck(req, res) {
+    try {
+        const { characterId, nickName } = req.user;
+        const portraitUrl = `https://images.evetech.net/characters/${characterId}/portrait?size=128`;
+
+        res.json({
+            ok: true,
+            id: characterId,
+            name: nickName,
+            portrait: portraitUrl,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ ok: false, error: "프로필 조회 실패" });
     }
 }
