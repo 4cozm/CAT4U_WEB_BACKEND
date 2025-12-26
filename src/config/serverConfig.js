@@ -27,7 +27,7 @@ export const ALLOWED_WRITE_ROLE = [
     // ...필요한 타이틀 추가
 ];
 
-//게시글,댓글,밴,정지 가능한 권한 리스트
+//게시글,댓글,수정,밴,정지 가능한 권한 리스트
 export const ALLOWED_EDIT_ROLE = ["FC", "CEO", "COO"];
 
 //허용할 코퍼레이션 리스트
@@ -57,3 +57,20 @@ export function getFileServerDomain() {
 // - 파일 URL은 `${CDN_BASE_URL}/incoming/<key>` 형태(예: https://dxxxx.cloudfront.net/incoming/... 또는 files 전용 도메인).
 // - 권한이 필요한 경우에는 백엔드가 CloudFront Signed URL 또는 Signed Cookie(짧은 TTL)를 발급해서 클라이언트에 전달.
 //   (즉, 파일 바이트는 S3/CloudFront -> 클라이언트로 직접 전달되고, 서버는 “접근 토큰”만 발급)
+
+//BlockNote의 RAW JSON -> HTML로 변환하는 과정에서 커스텀으로 구현한 이모지의 공통 정의
+//해당 값은 클라이언트 레포지토리와 항상 같아야함
+//v1.0 edit by bonsai 2025/12/23
+export const emojiSpecDefinition = {
+    type: "emoji",
+    propSchema: {
+        src: { default: "" },
+        alt: { default: "" },
+        width: { default: undefined, type: "number" },
+        height: { default: undefined, type: "number" },
+        size: { default: undefined, type: "number" },
+        scale: { default: 1 },
+    },
+    content: "none",
+    draggable: false,
+};
