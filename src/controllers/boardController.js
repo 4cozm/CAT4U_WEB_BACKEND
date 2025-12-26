@@ -1,4 +1,4 @@
-import { createBoardService } from "../service/boardService.js";
+import { createBoardService, editBoardService } from "../service/boardService.js";
 import { getPrisma } from "../service/prismaService.js";
 import { logger } from "../utils/logger.js";
 import printUserInfo from "../utils/printUserInfo.js";
@@ -28,9 +28,7 @@ export const createBoard = async (req, res) => {
 
         // 3. 내용 검증 (BlockNote 빈 객체 방어)
         try {
-            const parsedContent = JSON.parse(board_content || "[]");
-
-            const hasActualContent = parsedContent.some(block => {
+            const hasActualContent = board_content.some(block => {
                 // 텍스트가 있는 경우
                 const hasText = block.content?.some(
                     item => item.text && item.text.trim().length > 0
@@ -64,9 +62,45 @@ export const createBoard = async (req, res) => {
     }
 };
 
+export const editBoard = async (req, res) => {
+    //TODO 게시글 위치 이동 로직 개발해야함
+    const { board_title, board_content } = req.body || {};
+
+    if (!board_title || !board_title.trim()) {
+        return res.status(400).json({ message: "제목은 빈칸이 될 수 없다옹" });
+    }
+
+    if (!Array.isArray(board_content)) {
+        return res.status(400).json({ message: "올바르지 않은 게시글 형식이라옹" });
+    }
+
+    const hasActualContent = board_content.some(block => {
+        const hasText = block?.content?.some(item => item?.text && item.text.trim().length > 0);
+        const isNotParagraph = block?.type && block.type !== "paragraph";
+        return hasText || isNotParagraph;
+    });
+
+    if (!hasActualContent) {
+        return res.status(400).json({ message: "내용은 빈칸이 될 수 없다옹" });
+    }
+
+    const edited = await editBoardService(req.user, req.body, req.params.id);
+
+    if (!edited.ok || edited.code === 403) {
+        logger().warn(`${printUserInfo(req)} URL 조작으로 권한이 없는 글의 수정 요청`);
+    }
+    logger().info(
+        `${printUserInfo(req)} 게시글 수정 요청. 게시글 ID :${req.params.id} status : ${edited.code} , message : ${edited.message}`
+    );
+    return res.status(edited.code).json({ message: edited.message });
+};
+
 export const getBoardDetail = async (req, res) => {
+    logger().debug("세부 글 읽기 요청");
     try {
         const { category, id } = req.query;
+        const boardId = BigInt(id);
+
         const prisma = getPrisma();
 
         if (!category || !id) {
@@ -75,7 +109,7 @@ export const getBoardDetail = async (req, res) => {
 
         const board = await prisma.board.findFirst({
             where: {
-                id: BigInt(id),
+                id: boardId,
                 type: category.toUpperCase(),
                 is_deleted: 0,
             },
@@ -83,11 +117,17 @@ export const getBoardDetail = async (req, res) => {
                 user: {
                     select: {
                         nickname: true,
-                        character_id: true, // BigInt 타입
+                        character_id: true,
                     },
                 },
             },
         });
+
+        const reqUserId = req.user.characterId;
+        logger().debug(
+            `글을 호출한 사람 :${req.user.characterId}, 글 주인 :${board.user.character_id}`
+        );
+        const owner = BigInt(reqUserId) === board.user.character_id;
 
         if (!board) {
             return res.status(404).json({ message: "존재하지 않거나 삭제된 게시글이라옹" });
@@ -99,6 +139,7 @@ export const getBoardDetail = async (req, res) => {
                 ...board.user,
                 character_id: board.user.character_id.toString(),
             },
+            owner: owner,
         };
 
         return res.status(200).json({
@@ -140,6 +181,7 @@ export const getBoardList = async (req, res) => {
                 create_dt: true,
                 nickname: true,
                 user: { select: { corp: true } },
+                recommend_cnt: true,
             },
         });
 

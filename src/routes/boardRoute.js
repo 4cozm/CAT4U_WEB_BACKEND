@@ -1,5 +1,10 @@
 import express from "express";
-import { createBoard, getBoardDetail, getBoardList } from "../controllers/boardController.js";
+import {
+    createBoard,
+    editBoard,
+    getBoardDetail,
+    getBoardList,
+} from "../controllers/boardController.js";
 
 const boardRouter = express.Router();
 
@@ -7,5 +12,6 @@ const boardRouter = express.Router();
 boardRouter.post("/", createBoard);
 boardRouter.get("/", getBoardList);
 boardRouter.get("/detail", getBoardDetail);
+boardRouter.patch("/:id", editBoard);
 
 export default boardRouter;
