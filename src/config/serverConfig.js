@@ -27,7 +27,7 @@ export const ALLOWED_WRITE_ROLE = [
     // ...필요한 타이틀 추가
 ];
 
-//게시글,댓글,밴,정지 가능한 권한 리스트
+//게시글,댓글,수정,밴,정지 가능한 권한 리스트
 export const ALLOWED_EDIT_ROLE = ["FC", "CEO", "COO"];
 
 //허용할 코퍼레이션 리스트
