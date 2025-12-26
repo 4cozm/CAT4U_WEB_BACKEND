@@ -15,7 +15,6 @@ const ALLOWED_TYPES = ["GUIDE", "DOCTRINE", "FITTING", "MARKET"];
  */
 export const createBoard = async (req, res) => {
     try {
-        logger().debug("게시글 저장 요청 받음");
         const { type, board_title, board_content } = req.body || {};
 
         // 1. 타입 검증
@@ -100,7 +99,6 @@ export const editBoard = async (req, res) => {
 };
 
 export const getBoardDetail = async (req, res) => {
-    logger().debug("세부 글 읽기 요청");
     try {
         const { category, id } = req.query;
         const boardId = BigInt(id);
@@ -129,9 +127,6 @@ export const getBoardDetail = async (req, res) => {
         if (!board) {
             return res.status(404).json({ message: "존재하지 않거나 삭제된 게시글이라옹" });
         }
-        logger().debug(
-            `글을 호출한 사람 :${req.user.characterId}, 글 주인 :${board.user.character_id}`
-        );
 
         const reqUserId = req.user.characterId;
 
@@ -158,7 +153,6 @@ export const getBoardDetail = async (req, res) => {
 
 export const getBoardList = async (req, res) => {
     try {
-        logger().debug("게시글 리스트 요청", req.query.type);
         const { type, page = 1, limit = 10 } = req.query; // 기본값: 1페이지, 10개씩
         const prisma = getPrisma();
         const skip = (Number(page) - 1) * Number(limit);
