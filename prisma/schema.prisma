@@ -50,7 +50,7 @@ enum UploadStatus {
 model Board {
   id              BigInt    @id @default(autoincrement())
   type            BoardType
-  nickname        String
+  nickname String @db.VarChar(64)
   board_title     String    @db.VarChar(200)
 
   board_content   Json
@@ -79,7 +79,8 @@ model BoardHistory {
   // 당시 원본 JSON
   prev_content    Json
 
-  editor_id       BigInt
+  editor_nickname String @db.VarChar(64)
+
   edit_dt         DateTime @default(now())
 
   board           Board    @relation(fields: [board_id], references: [id], onDelete: Restrict)

@@ -4,6 +4,7 @@ import {
     editBoard,
     getBoardDetail,
     getBoardList,
+    deleteBoard,
 } from "../controllers/boardController.js";
 
 const boardRouter = express.Router();
@@ -13,5 +14,6 @@ boardRouter.post("/", createBoard);
 boardRouter.get("/", getBoardList);
 boardRouter.get("/detail", getBoardDetail);
 boardRouter.patch("/:id", editBoard);
+boardRouter.delete("/:id", deleteBoard);
 
 export default boardRouter;

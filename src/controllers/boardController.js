@@ -1,4 +1,8 @@
-import { createBoardService, editBoardService } from "../service/boardService.js";
+import {
+    createBoardService,
+    deleteBoardService,
+    editBoardService,
+} from "../service/boardService.js";
 import { getPrisma } from "../service/prismaService.js";
 import { logger } from "../utils/logger.js";
 import printUserInfo from "../utils/printUserInfo.js";
@@ -122,16 +126,16 @@ export const getBoardDetail = async (req, res) => {
                 },
             },
         });
-
-        const reqUserId = req.user.characterId;
-        logger().debug(
-            `글을 호출한 사람 :${req.user.characterId}, 글 주인 :${board.user.character_id}`
-        );
-        const owner = BigInt(reqUserId) === board.user.character_id;
-
         if (!board) {
             return res.status(404).json({ message: "존재하지 않거나 삭제된 게시글이라옹" });
         }
+        logger().debug(
+            `글을 호출한 사람 :${req.user.characterId}, 글 주인 :${board.user.character_id}`
+        );
+
+        const reqUserId = req.user.characterId;
+
+        const owner = BigInt(reqUserId) === board.user.character_id;
         const responseData = {
             ...board,
             id: board.id.toString(),
@@ -201,4 +205,16 @@ export const getBoardList = async (req, res) => {
         console.error("목록 조회 에러:", err);
         return res.status(500).json({ message: "Internal Server Error" });
     }
+};
+
+export const deleteBoard = async (req, res) => {
+    const edited = await deleteBoardService(req.user, req.params.id);
+
+    if (!edited.ok || edited.code === 403) {
+        logger().warn(`${printUserInfo(req)} URL 조작으로 권한이 없는 글의 수정 요청`);
+    }
+    logger().info(
+        `${printUserInfo(req)} 게시글 삭제 요청. 게시글 ID :${req.params.id} status : ${edited.code} , message : ${edited.message}`
+    );
+    return res.status(edited.code).json({ message: edited.message });
 };
