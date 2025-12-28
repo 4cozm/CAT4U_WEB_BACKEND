@@ -34,7 +34,6 @@ export async function createBoardService(user, payload) {
         const created = await prisma.board.create({
             data: {
                 type,
-                nickname,
                 board_title: board_title.trim(),
                 board_content,
                 user: {
