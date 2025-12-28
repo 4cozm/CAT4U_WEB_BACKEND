@@ -58,7 +58,7 @@ jobs:
 
             pm2 describe "$PROC" >/dev/null 2>&1 \
               && pm2 reload "$PROC" --update-env \
-              || pm2 start npm --name "$PROC" -i max -- run start
+              || pm2 start "$APP_DIR/src/server.js" --name "$PROC" -i max
 
             pm2 save
 
