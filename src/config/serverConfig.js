@@ -20,7 +20,7 @@ export function getSessionConfig() {
 export function getServerDomain() {
     return process.env.isDev === "true"
         ? "http://127.0.0.1:4000/"
-        : "https//community.catalyst-for-you.com";
+        : "https://community.catalyst-for-you.com";
 }
 
 //글쓰기가 가능한 권한 리스트
