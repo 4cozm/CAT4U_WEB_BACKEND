@@ -17,6 +17,12 @@ export function getSessionConfig() {
     };
 }
 
+export function getServerDomain() {
+    return process.env.isDev === "true"
+        ? "http://127.0.0.1:4000/"
+        : "https//community.catalyst-for-you.com";
+}
+
 //글쓰기가 가능한 권한 리스트
 export const ALLOWED_WRITE_ROLE = [
     "새끼 고양이",
@@ -50,7 +56,7 @@ export function getFileServerDomain() {
     const isDev = process.env.isDev === "true";
     return isDev
         ? "https://cat4u-dev-bucket.s3.ap-northeast-2.amazonaws.com"
-        : "https:TODO 리스트 해야함 안하면 작동안함";
+        : "https://cat4u-uploads.s3.ap-northeast-2.amazonaws.com";
 } // TODO (prod):
 // - dev는 S3 객체를 직접 공개(GET)해서 `${S3_BASE_URL}/incoming/...` 로 바로 서빙 중.
 // - prod는 S3를 private로 유지하고, CloudFront(OAC)로만 접근 가능하게 구성해야 함.

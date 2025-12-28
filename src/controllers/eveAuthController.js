@@ -1,4 +1,4 @@
-import { getSessionConfig } from "../config/serverConfig.js";
+import { getServerDomain, getSessionConfig } from "../config/serverConfig.js";
 import { processCallback } from "../service/eveAuthService.js";
 import { isAllowedEditRole } from "../utils/eveRoleUtils.js";
 import getRandomUuid from "../utils/getRandomUuid.js";
@@ -62,8 +62,7 @@ export async function handleCallback(req, res) {
     try {
         const token = await processCallback(code, req.ip);
 
-        const redirectUrl =
-            process.env.isDev === "true" ? "http://127.0.0.1:4000/" : "https://web.cat4u.store";
+        const redirectUrl = getServerDomain();
         const cookieOption = getSessionConfig();
         res.cookie("access_token", token, cookieOption.COOKIE_OPTIONS);
         logger().info("[EVE ESI] JWT 발급 성공", req.ip);
