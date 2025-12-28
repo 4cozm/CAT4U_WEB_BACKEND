@@ -1,6 +1,6 @@
 import { createPresignedPost } from "@aws-sdk/s3-presigned-post"; // 변경된 부분
 import path from "path";
-import { getFileServerDomain, MAX_FILE_SIZE, s3UploadTimeout } from "../config/serverConfig.js";
+import { MAX_FILE_SIZE, s3UploadTimeout } from "../config/serverConfig.js";
 import { getS3Client } from "../service/awsS3Client.js";
 import { getPrisma } from "../service/prismaService.js";
 import { logger } from "../utils/logger.js";
@@ -112,7 +112,7 @@ export async function getS3UploadUrl(req, res) {
         return res.json({
             uploadUrl: url, // 클라이언트가 POST 보낼 주소
             fields, // 클라이언트가 FormData에 담아야 할 인증 정보들
-            fileUrl: `${getFileServerDomain()}/${fileKey}`,
+            fileUrl: `${process.env.AWS_S3_URL}/${fileKey}`,
             status: "pending",
         });
     } catch (e) {
