@@ -20,7 +20,7 @@ export function getSessionConfig() {
 export function getServerDomain() {
     return process.env.isDev === "true"
         ? "http://127.0.0.1:4000/"
-        : "https//community.catalyst-for-you.com";
+        : "https://community.catalyst-for-you.com";
 }
 
 //글쓰기가 가능한 권한 리스트
@@ -51,18 +51,6 @@ export const defaultEnv = {
 export const MAX_FILE_SIZE = 1024 * 1024 * 1024; //S3에 단일로 업로드 가능한 용량 최대 용량 (1GB)
 
 export const s3UploadTimeout = 3600; //S3에 파일을 올릴 수 있는 Presigned URL 유효시간 (1시간)
-
-export function getFileServerDomain() {
-    const isDev = process.env.isDev === "true";
-    return isDev
-        ? "https://cat4u-dev-bucket.s3.ap-northeast-2.amazonaws.com"
-        : "https://cat4u-uploads.s3.ap-northeast-2.amazonaws.com";
-} // TODO (prod):
-// - dev는 S3 객체를 직접 공개(GET)해서 `${S3_BASE_URL}/incoming/...` 로 바로 서빙 중.
-// - prod는 S3를 private로 유지하고, CloudFront(OAC)로만 접근 가능하게 구성해야 함.
-// - 파일 URL은 `${CDN_BASE_URL}/incoming/<key>` 형태(예: https://dxxxx.cloudfront.net/incoming/... 또는 files 전용 도메인).
-// - 권한이 필요한 경우에는 백엔드가 CloudFront Signed URL 또는 Signed Cookie(짧은 TTL)를 발급해서 클라이언트에 전달.
-//   (즉, 파일 바이트는 S3/CloudFront -> 클라이언트로 직접 전달되고, 서버는 “접근 토큰”만 발급)
 
 //BlockNote의 RAW JSON -> HTML로 변환하는 과정에서 커스텀으로 구현한 이모지의 공통 정의
 //해당 값은 클라이언트 레포지토리와 항상 같아야함

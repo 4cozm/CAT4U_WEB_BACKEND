@@ -29,6 +29,7 @@ const secretNames = [
     "AWS-ACCESS-KEY-ID",
     "AWS-SECRET-ACCESS-KEY",
     "AWS-S3-BUCKET-NAME",
+    "AWS-S3-URL",
 ];
 
 //공용 개발키 로드
