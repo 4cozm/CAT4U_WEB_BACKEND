@@ -1,4 +1,5 @@
 import { getServerDomain, getSessionConfig } from "../config/serverConfig.js";
+import { attachMediaCookies } from "../service/awsSignedCookies.js";
 import { processCallback } from "../service/eveAuthService.js";
 import { isAllowedEditRole } from "../utils/eveRoleUtils.js";
 import getRandomUuid from "../utils/getRandomUuid.js";
@@ -65,12 +66,18 @@ export async function handleCallback(req, res) {
         const redirectUrl = getServerDomain();
         const cookieOption = getSessionConfig();
         res.cookie("access_token", token, cookieOption.COOKIE_OPTIONS);
-        logger().info("[EVE ESI] JWT 발급 성공", req.ip);
 
-        res.redirect(redirectUrl);
+        try {
+            attachMediaCookies(res); // AWS S3 업로드 파일에 대한 접근 쿠키
+        } catch (e) {
+            logger().warn("[EVE ESI] CloudFront 쿠키 발급에 문제가 생겼습니다", e);
+        }
+
+        logger().info("[EVE ESI] JWT 발급 성공", req.ip);
+        return res.redirect(redirectUrl);
     } catch (err) {
         logger().warn(`[EVE ESI][콜백] 로그인 중 에러 발생 ${err} | ${req.ip}`);
-        res.status(500).send("서버 문제로 인한 로그인 실패");
+        return res.status(500).send("서버 문제로 인한 로그인 실패");
     }
 }
 

@@ -12,7 +12,7 @@ export function getSessionConfig() {
             sameSite: "lax",
             path: "/",
             ...(isDev ? {} : { domain: ".catalyst-for-you.com" }),
-            maxAge: 86_300_000, // 쿠키 만료일 : 1일 (JWT 유효기간과 동일하게 가져가야함)
+            maxAge: 86_400_000, // 쿠키 만료일 : 1일 (JWT 유효기간과 동일하게 가져가야함)
         },
     };
 }
@@ -68,3 +68,5 @@ export const emojiSpecDefinition = {
     content: "none",
     draggable: false,
 };
+
+export const DAYS_BEFORE_DELETION = 7; //게시글 삭제 처리후 몇일후 지울건지

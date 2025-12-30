@@ -30,6 +30,9 @@ const secretNames = [
     "AWS-SECRET-ACCESS-KEY",
     "AWS-S3-BUCKET-NAME",
     "AWS-S3-URL",
+    "AWS-S3-UPLOAD-PEM", // 업로드용 버킷에 접근 권한 쿠키를 발급하는 용도
+    "AWS-CLOUDFRONT-PUBLIC-KEY-ID",
+    "AWS-CLOUDFRONT-KEY-PEM",
 ];
 
 //공용 개발키 로드

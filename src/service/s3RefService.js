@@ -81,7 +81,7 @@ function tryExtractMd5FromUrl(url, s3Prefix) {
  * @param {string} s3Prefix 우리 S3 URL prefix
  * @returns {Set<string>} md5 Set
  */
-function collectMd5SetFromBlocks(blocks, s3Prefix) {
+export function collectMd5SetFromBlocks(blocks, s3Prefix) {
     const out = new Set();
 
     function walk(list) {
