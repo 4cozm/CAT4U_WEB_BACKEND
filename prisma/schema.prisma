@@ -83,7 +83,7 @@ model BoardHistory {
 
   edit_dt         DateTime @default(now())
 
-  board           Board    @relation(fields: [board_id], references: [id], onDelete: Restrict)
+  board           Board    @relation(fields: [board_id], references: [id], onDelete: Cascade)
 
   @@index([board_id])
   @@map("board_history")
