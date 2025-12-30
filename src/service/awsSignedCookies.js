@@ -28,7 +28,7 @@ export function attachMediaCookies(res) {
         "SameSite=Lax",
         "Domain=.catalyst-for-you.com",
     ].join("; ");
-
+    console.log("내부 쿠키 값", cookies);
     res.append("Set-Cookie", `CloudFront-Policy=${cookies["CloudFront-Policy"]}; ${common}`);
     res.append("Set-Cookie", `CloudFront-Signature=${cookies["CloudFront-Signature"]}; ${common}`);
     res.append(

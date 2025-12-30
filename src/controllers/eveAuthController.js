@@ -74,6 +74,9 @@ export async function handleCallback(req, res) {
         }
 
         logger().info("[EVE ESI] JWT 발급 성공", req.ip);
+        const setCookie = res.getHeader("Set-Cookie");
+        logger().info("[auth]나가는 쿠키:", setCookie);
+
         return res.redirect(redirectUrl);
     } catch (err) {
         logger().warn(`[EVE ESI][콜백] 로그인 중 에러 발생 ${err} | ${req.ip}`);
