@@ -1,20 +1,24 @@
 import { getSignedCookies } from "@aws-sdk/cloudfront-signer";
 
 export function attachMediaCookies(res) {
-    // JWT 검증 통과한 사용자만 여기까지 오게
-
     const isDev = process.env.isDev === "true";
     if (isDev) {
         return;
     }
-    const privateKey = `-----BEGIN PRIVATE KEY-----\n${process.env.AWS_CLOUDFRONT_KEY_PEM.match(/.{1,64}/g).join("\n")}\n-----END PRIVATE KEY-----`;
-    const seconds = 60 * 60 * 24; // JWT랑 동일하게
+
+    const seconds = 60 * 60 * 24;
     const cfBase = (process.env.AWS_S3_URL || "").replace(/\/$/, "");
     const url = `${cfBase}/*`;
+
+    const privateKey = (process.env.AWS_CLOUDFRONT_KEY_PEM || "")
+        .replace(/\\n/g, "\n")
+        .replace(/\r/g, "")
+        .trim();
+
     const cookies = getSignedCookies({
         url,
-        keyPairId: process.env.AWS_CLOUDFRONT_PUBLIC_KEY_ID, // CloudFront Public Key ID
-        privateKey: privateKey, // private key PEM 문자열
+        keyPairId: process.env.AWS_CLOUDFRONT_PUBLIC_KEY_ID,
+        privateKey,
         dateLessThan: new Date(Date.now() + seconds * 1000),
     });
 
@@ -26,10 +30,11 @@ export function attachMediaCookies(res) {
         "SameSite=Lax",
         "Domain=.catalyst-for-you.com",
     ].join("; ");
-    res.append("Set-Cookie", `CloudFront-Policy=${cookies["CloudFront-Policy"]}; ${common}`);
-    res.append("Set-Cookie", `CloudFront-Signature=${cookies["CloudFront-Signature"]}; ${common}`);
-    res.append(
-        "Set-Cookie",
-        `CloudFront-Key-Pair-Id=${cookies["CloudFront-Key-Pair-Id"]}; ${common}`
-    );
+
+    for (const [name, value] of Object.entries(cookies)) {
+        if (!value) {
+            continue;
+        }
+        res.append("Set-Cookie", `${name}=${value}; ${common}`);
+    }
 }
