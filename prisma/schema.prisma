@@ -97,7 +97,6 @@ model File {
   extension     String
   size          BigInt
   s3_key        String
-  s3_url        String
   status        FileStatus   @default(uploaded)
   need_optimize Boolean      @default(true)
   ref_count     Int          @default(0)
