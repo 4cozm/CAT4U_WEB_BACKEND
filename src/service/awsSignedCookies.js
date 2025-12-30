@@ -10,10 +10,20 @@ export function attachMediaCookies(res) {
     const cfBase = (process.env.AWS_S3_URL || "").replace(/\/$/, "");
     const url = `${cfBase}/*`;
 
-    const privateKey = (process.env.AWS_CLOUDFRONT_KEY_PEM || "")
-        .replace(/\\n/g, "\n")
-        .replace(/\r/g, "")
-        .trim();
+    let rawKey = process.env.AWS_CLOUDFRONT_KEY_PEM || "";
+
+    // 1. 혹시 모를 공백이나 따옴표 제거
+    rawKey = rawKey.replace(/["']/g, "").trim();
+
+    // 2. 64자마다 줄바꿈을 넣어주는 처리 (PEM 표준 규격)
+    const formattedKey = rawKey.match(/.{1,64}/g).join("\n");
+
+    // 3. Header와 Footer를 포함한 완전한 PEM 생성
+    const privateKey = [
+        "-----BEGIN RSA PRIVATE KEY-----",
+        formattedKey,
+        "-----END RSA PRIVATE KEY-----",
+    ].join("\n");
 
     const cookies = getSignedCookies({
         url,
