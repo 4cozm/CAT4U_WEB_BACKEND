@@ -7,12 +7,10 @@ export function attachMediaCookies(res) {
     if (isDev) {
         return;
     }
-
+    const privateKey = `-----BEGIN PRIVATE KEY-----\n${process.env.AWS_CLOUDFRONT_KEY_PEM.match(/.{1,64}/g).join("\n")}\n-----END PRIVATE KEY-----`;
     const seconds = 60 * 60 * 24; // JWT랑 동일하게
     const cfBase = (process.env.AWS_S3_URL || "").replace(/\/$/, "");
     const url = `${cfBase}/*`;
-    const privateKey = (process.env.AWS_CLOUDFRONT_KEY_PEM || "").replace(/\\n/g, "\n"); //전처리
-    console.log("비밀키", privateKey);
     const cookies = getSignedCookies({
         url,
         keyPairId: process.env.AWS_CLOUDFRONT_PUBLIC_KEY_ID, // CloudFront Public Key ID
@@ -28,7 +26,6 @@ export function attachMediaCookies(res) {
         "SameSite=Lax",
         "Domain=.catalyst-for-you.com",
     ].join("; ");
-    console.log("내부 쿠키 값", cookies);
     res.append("Set-Cookie", `CloudFront-Policy=${cookies["CloudFront-Policy"]}; ${common}`);
     res.append("Set-Cookie", `CloudFront-Signature=${cookies["CloudFront-Signature"]}; ${common}`);
     res.append(
