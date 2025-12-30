@@ -5,7 +5,7 @@ import { collectMd5SetFromBlocks } from "../service/s3RefService.js";
 import { logger } from "../utils/logger.js";
 
 export function registerPurgeDeletedBoardsJob() {
-    logger().info("게시글 삭제 CRON 등록 완료");
+    console.log("✔ 게시글 삭제 CRON 등록 완료");
     cron.schedule(
         "10 4 * * *",
         async () => {
