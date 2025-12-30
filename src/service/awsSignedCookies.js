@@ -12,7 +12,7 @@ export function attachMediaCookies(res) {
     const cfBase = (process.env.AWS_S3_URL || "").replace(/\/$/, "");
     const url = `${cfBase}/*`;
     const privateKey = (process.env.AWS_CLOUDFRONT_KEY_PEM || "").replace(/\\n/g, "\n"); //전처리
-
+    console.log("비밀키", privateKey);
     const cookies = getSignedCookies({
         url,
         keyPairId: process.env.AWS_CLOUDFRONT_PUBLIC_KEY_ID, // CloudFront Public Key ID
