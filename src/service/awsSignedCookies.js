@@ -1,38 +1,62 @@
 import { getSignedCookies } from "@aws-sdk/cloudfront-signer";
 
 export function attachMediaCookies(res) {
-    // JWT 검증 통과한 사용자만 여기까지 오게
-
     const isDev = process.env.isDev === "true";
     if (isDev) {
         return;
     }
 
-    const seconds = 60 * 60 * 24; // JWT랑 동일하게
+    const seconds = 60 * 60 * 24;
     const cfBase = (process.env.AWS_S3_URL || "").replace(/\/$/, "");
     const url = `${cfBase}/*`;
-    const privateKey = (process.env.AWS_CLOUDFRONT_KEY_PEM || "").replace(/\\n/g, "\n"); //전처리
 
-    const cookies = getSignedCookies({
-        url,
-        keyPairId: process.env.AWS_CLOUDFRONT_PUBLIC_KEY_ID, // CloudFront Public Key ID
-        privateKey: privateKey, // private key PEM 문자열
-        dateLessThan: new Date(Date.now() + seconds * 1000),
+    let rawKey = process.env.AWS_CLOUDFRONT_KEY_PEM || "";
+    rawKey = rawKey.replace(/["']/g, "").trim();
+    const formattedKey = rawKey.match(/.{1,64}/g).join("\n");
+    const privateKey = [
+        "-----BEGIN PRIVATE KEY-----",
+        formattedKey,
+        "-----END PRIVATE KEY-----",
+    ].join("\n");
+
+    const policy = JSON.stringify({
+        Statement: [
+            {
+                Resource: url,
+                Condition: {
+                    DateLessThan: {
+                        "AWS:EpochTime": Math.floor((Date.now() + seconds * 1000) / 1000),
+                    },
+                },
+            },
+        ],
     });
 
-    const common = [
-        "Path=/",
-        "Secure",
-        "HttpOnly",
-        `Max-Age=${seconds}`,
-        "SameSite=Lax",
-        "Domain=.catalyst-for-you.com",
-    ].join("; ");
+    try {
+        const cookies = getSignedCookies({
+            policy,
+            keyPairId: process.env.AWS_CLOUDFRONT_PUBLIC_KEY_ID,
+            privateKey,
+        });
 
-    res.append("Set-Cookie", `CloudFront-Policy=${cookies["CloudFront-Policy"]}; ${common}`);
-    res.append("Set-Cookie", `CloudFront-Signature=${cookies["CloudFront-Signature"]}; ${common}`);
-    res.append(
-        "Set-Cookie",
-        `CloudFront-Key-Pair-Id=${cookies["CloudFront-Key-Pair-Id"]}; ${common}`
-    );
+        console.log("[CloudFront] Generated Custom Policy Cookies:", Object.keys(cookies));
+
+        const common = [
+            "Path=/",
+            "Secure",
+            "HttpOnly",
+            `Max-Age=${seconds}`,
+            "SameSite=Lax",
+            "Domain=.catalyst-for-you.com",
+        ].join("; ");
+
+        for (const [name, value] of Object.entries(cookies)) {
+            if (!value) {
+                continue;
+            }
+            res.append("Set-Cookie", `${name}=${value}; ${common}`);
+        }
+    } catch (err) {
+        console.error("[CloudFront] Signing Error:", err.message);
+    }
 }
