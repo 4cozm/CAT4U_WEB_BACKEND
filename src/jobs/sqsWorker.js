@@ -41,18 +41,25 @@ export const startSqsWorker = async () => {
 const handleMessage = async (message, queueUrl) => {
     try {
         const body = JSON.parse(message.Body);
-        // 개인별 SQS의 원시 메세지 옵션이 꺼져있으면 에러날 수 있음
         const records = body.Records || [];
 
         for (const record of records) {
-            const s3Key = record.s3.object.key; // 예: incoming/f3a1...png
-            const filename = s3Key.split("/").pop(); // 파일명 추출
-            const fileMd5 = filename.split(".")[0]; // 확장자 제외한 MD5 값
+            const s3KeyRaw = record?.s3?.object?.key;
+            if (!s3KeyRaw) {
+                continue;
+            }
 
-            logger().info(`📩 [SQS] 업로드 완료 감지: ${s3Key}`);
+            const { s3Key, base, fileMd5, ext } = parseKey(s3KeyRaw);
 
-            await processDatabaseUpdate(fileMd5, s3Key);
+            if (!/^[a-f0-9]{32}$/i.test(fileMd5)) {
+                logger().warn(`[SQS] 올바르지 않는 md5 값: ${base}`);
+                continue;
+            }
+
+            logger().info(`📩 [SQS] 감지: ${s3Key} md5=${fileMd5} ext=${ext}`);
+            await processDatabaseUpdate(fileMd5, ext, s3Key);
         }
+
         await sqsClient.send(
             new DeleteMessageCommand({
                 QueueUrl: queueUrl,
@@ -60,6 +67,17 @@ const handleMessage = async (message, queueUrl) => {
             })
         );
     } catch (err) {
-        logger().error("[SQS Worker] 메시지 처리 실패:", err);
+        logger().warn("[SQS Worker] 메시지 처리 실패:", err);
     }
 };
+
+import path from "node:path";
+
+function parseKey(s3KeyRaw) {
+    const s3Key = decodeURIComponent(String(s3KeyRaw).replace(/\+/g, " "));
+    const base = path.posix.basename(s3Key); // "<md5>.webp"
+    const ext = path.posix.extname(base).slice(1); // "webp"
+    const fileMd5 = ext ? base.slice(0, -(ext.length + 1)) : base;
+
+    return { s3Key, base, fileMd5, ext };
+}

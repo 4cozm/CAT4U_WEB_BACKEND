@@ -1,5 +1,6 @@
 import { isAllowedEditRole } from "../utils/eveRoleUtils.js";
 import { getPrisma } from "./prismaService.js";
+import { applyFileRefCountDelta } from "./s3RefService.js";
 //logger 호출 금지. 컨트롤러 레벨에서 호출 하세용
 function toBigInt(v, fallback = 0n) {
     try {
@@ -30,33 +31,38 @@ export async function createBoardService(user, payload) {
 
         const nickname = getNickname(user);
         const prisma = getPrisma();
-
-        const created = await prisma.board.create({
-            data: {
-                type,
-                board_title: board_title.trim(),
-                board_content,
-                user: {
-                    connect: { nickname },
+        await prisma.$transaction(async tx => {
+            const created = await tx.board.create({
+                data: {
+                    type,
+                    board_title: board_title.trim(),
+                    board_content,
+                    user: {
+                        connect: { nickname },
+                    },
                 },
-            },
-            select: {
-                id: true,
-                type: true,
-                board_title: true,
-            },
-        });
+                select: {
+                    id: true,
+                    type: true,
+                    board_title: true,
+                },
+            });
 
-        return {
-            ok: true,
-            code: 201,
-            message: "게시글 생성 완료",
-            data: {
-                id: created.id.toString(),
-                category: created.type.toLowerCase(),
-                board_title: created.board_title,
-            },
-        };
+            await applyFileRefCountDelta(tx, board_content, {
+                debug: true,
+            });
+
+            return {
+                ok: true,
+                code: 201,
+                message: "게시글 생성 완료",
+                data: {
+                    id: created.id.toString(),
+                    category: created.type.toLowerCase(),
+                    board_title: created.board_title,
+                },
+            };
+        });
     } catch (err) {
         rethrow(err);
     }
@@ -91,26 +97,57 @@ export async function editBoardService(user, payload, board_id) {
             return { ok: false, code: 403, message: "권한이 없다옹 나가라옹" };
         }
 
-        const nextTitle = board_title.trim(); // 컨트롤러가 이미 검증함
+        const nextTitle = board_title.trim();
 
-        const [, updated] = await prisma.$transaction([
-            prisma.boardHistory.create({
+        const prevTitle = (original.board_title ?? "").trim();
+        const prevContentStr =
+            typeof original.board_content === "string"
+                ? original.board_content
+                : JSON.stringify(original.board_content ?? []);
+
+        const nextContentStr =
+            typeof board_content === "string" ? board_content : JSON.stringify(board_content ?? []);
+
+        const titleChanged = prevTitle !== nextTitle;
+        const contentChanged = prevContentStr !== nextContentStr;
+
+        if (!titleChanged && !contentChanged) {
+            // 변경 없음. DB 쓰기/히스토리/증감 전부 스킵
+            return {
+                ok: true,
+                code: 200,
+                message: "바뀐 내용이 없다옹...",
+                data: { ...original, id: original.id.toString() },
+            };
+        }
+
+        const updated = await prisma.$transaction(async tx => {
+            await tx.boardHistory.create({
                 data: {
                     board_id: boardId,
                     prev_title: original.board_title,
                     prev_content: original.board_content,
                     editor_nickname: editorNickname,
                 },
-            }),
-            prisma.board.update({
+            });
+
+            const updatedRow = await tx.board.update({
                 where: { id: boardId },
                 data: {
                     board_title: nextTitle,
                     board_content,
                     last_editor_name: editorNickname,
                 },
-            }),
-        ]);
+            });
+
+            // ref_count 증감 (수정 전/후 비교)
+            await applyFileRefCountDelta(tx, board_content, {
+                prevContent: original.board_content,
+                // s3Prefix는 기본(process.env.AWS_S3_URL) 쓰면 생략 가능
+            });
+
+            return updatedRow;
+        });
 
         return {
             ok: true,
