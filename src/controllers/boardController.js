@@ -4,6 +4,7 @@ import {
     editBoardService,
 } from "../service/boardService.js";
 import { getPrisma } from "../service/prismaService.js";
+import { resolveOptimizedMediaUrls } from "../service/s3RefService.js";
 import { logger } from "../utils/logger.js";
 import printUserInfo from "../utils/printUserInfo.js";
 
@@ -110,41 +111,29 @@ export const getBoardDetail = async (req, res) => {
         }
 
         const board = await prisma.board.findFirst({
-            where: {
-                id: boardId,
-                type: category.toUpperCase(),
-                is_deleted: 0,
-            },
-            include: {
-                user: {
-                    select: {
-                        nickname: true,
-                        character_id: true,
-                    },
-                },
-            },
+            where: { id: boardId, type: category.toUpperCase() },
+            include: { user: { select: { nickname: true, character_id: true } } },
         });
-        if (!board) {
-            return res.status(404).json({ message: "존재하지 않거나 삭제된 게시글이라옹" });
+
+        if (!board || board.is_deleted === 1) {
+            return res.status(404).json({ message: "존재하지 않는 게시글이다냥." });
         }
 
-        const reqUserId = req.user.characterId;
+        // 여기서 치환 (DB조회 1번 추가)
+        const resolvedContent = await resolveOptimizedMediaUrls(prisma, board.board_content);
 
+        const reqUserId = req.user.characterId;
         const owner = BigInt(reqUserId) === board.user.character_id;
+
         const responseData = {
             ...board,
+            board_content: resolvedContent, // 치환된 내용으로 교체
             id: board.id.toString(),
-            user: {
-                ...board.user,
-                character_id: board.user.character_id.toString(),
-            },
-            owner: owner,
+            user: { ...board.user, character_id: board.user.character_id.toString() },
+            owner,
         };
 
-        return res.status(200).json({
-            success: true,
-            data: responseData,
-        });
+        return res.status(200).json({ success: true, data: responseData });
     } catch (err) {
         console.error("게시글 조회 중 에러:", err);
         return res.status(500).json({ message: "서버 에러가 발생했다옹" });

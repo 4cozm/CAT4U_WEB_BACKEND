@@ -5,6 +5,7 @@ import { getS3Client } from "../service/awsS3Client.js";
 import { getPrisma } from "../service/prismaService.js";
 import { logger } from "../utils/logger.js";
 import printUserInfo from "../utils/printUserInfo.js";
+import { s3keyToURL } from "../utils/s3keyToURL.js";
 
 const MIME_TO_EXT = {
     "image/jpeg": ".jpg",
@@ -56,7 +57,7 @@ export async function getS3UploadUrl(req, res) {
                     `[getS3UploadUrl] 중복 파일 감지- ${printUserInfo(req)} 파일명: ${fileName}, 해시: ${fileMd5}`
                 );
                 return res.status(200).json({
-                    fileUrl: existingFile.s3_url,
+                    fileUrl: s3keyToURL(existingFile.s3_key),
                     reused: true,
                 });
             }
@@ -112,7 +113,7 @@ export async function getS3UploadUrl(req, res) {
         return res.json({
             uploadUrl: url, // 클라이언트가 POST 보낼 주소
             fields, // 클라이언트가 FormData에 담아야 할 인증 정보들
-            fileUrl: `${process.env.AWS_S3_URL}/${fileKey}`,
+            fileUrl: s3keyToURL(fileKey),
             status: "pending",
         });
     } catch (e) {
