@@ -2,7 +2,7 @@
 import { logger } from "../utils/logger.js";
 import { getPrisma } from "./prismaService.js";
 
-export const processDatabaseUpdate = async (fileMd5, s3Key) => {
+export const processDatabaseUpdate = async (fileMd5, ext, s3Key) => {
     const prisma = getPrisma();
     const isOptimized = s3Key.includes("optimized/");
 
@@ -27,16 +27,16 @@ export const processDatabaseUpdate = async (fileMd5, s3Key) => {
                     s3_key: s3Key,
                     // optimized 폴더에서 온 메세지는 status를 optimized로 처리
                     status: isOptimized ? "optimized" : "uploaded",
+                    extension: ext,
                     need_optimize: isOptimized ? false : s3Key.includes("incoming/"),
                     updated_at: new Date(),
                 },
                 create: {
                     file_md5: fileMd5,
                     original_name: session.original_name,
-                    extension: session.extension,
+                    extension: ext,
                     size: session.size,
                     s3_key: s3Key,
-                    s3_url: `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${s3Key}`,
                     need_optimize: !isOptimized,
                     status: isOptimized ? "optimized" : "uploaded",
                 },
