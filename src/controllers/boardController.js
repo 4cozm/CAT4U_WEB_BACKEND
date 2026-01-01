@@ -103,13 +103,12 @@ export const editBoard = async (req, res) => {
 export const getBoardDetail = async (req, res) => {
     try {
         const { category, id } = req.query;
-        const boardId = BigInt(id);
-
-        const prisma = getPrisma();
-
         if (!category || !id) {
             return res.status(400).json({ message: "필수 파라미터가 누락되었다옹" });
         }
+
+        const boardId = BigInt(id);
+        const prisma = getPrisma();
 
         const board = await prisma.board.findFirst({
             where: { id: boardId, type: category.toUpperCase() },
@@ -120,18 +119,24 @@ export const getBoardDetail = async (req, res) => {
             return res.status(404).json({ message: "존재하지 않는 게시글이다냥." });
         }
 
-        // 여기서 치환 (DB조회 1번 추가)
         const resolvedContent = await resolveOptimizedMediaUrls(prisma, board.board_content);
 
-        const reqUserId = req.user.characterId;
-        const owner = BigInt(reqUserId) === board.user.character_id;
+        const reqUserId = BigInt(req.user.characterId);
+        const owner = reqUserId === board.user.character_id;
+
+        const existing = await prisma.boardLike.findUnique({
+            where: { user_id_board_id: { user_id: reqUserId, board_id: boardId } },
+            select: { id: true },
+        });
+        const like = !!existing;
 
         const responseData = {
             ...board,
-            board_content: resolvedContent, // 치환된 내용으로 교체
+            board_content: resolvedContent,
             id: board.id.toString(),
             user: { ...board.user, character_id: board.user.character_id.toString() },
             owner,
+            like,
         };
 
         return res.status(200).json({ success: true, data: responseData });
@@ -143,26 +148,26 @@ export const getBoardDetail = async (req, res) => {
 
 export const getBoardList = async (req, res) => {
     try {
-        const { type, page = 1, limit = 10 } = req.query; // 기본값: 1페이지, 10개씩
+        const { type, page = 1, limit = 10 } = req.query;
+        if (!type) {
+            return res.status(400).json({ message: "type is required" });
+        }
+
         const prisma = getPrisma();
         const skip = (Number(page) - 1) * Number(limit);
         const take = Number(limit);
 
-        // 전체 게시글 개수 확인 (페이지네이션 UI 계산용)
-        const totalCount = await prisma.board.count({
-            where: { type: type.toUpperCase(), is_deleted: 0 },
-        });
+        const userId = req?.user?.character_id ? BigInt(req.user.character_id) : null;
+
+        const where = { type: type.toUpperCase(), is_deleted: 0 };
+
+        const totalCount = await prisma.board.count({ where });
 
         const posts = await prisma.board.findMany({
-            where: {
-                type: type.toUpperCase(),
-                is_deleted: 0,
-            },
-            orderBy: {
-                create_dt: "desc",
-            },
-            skip: skip, // 몇 개를 건너뛸지
-            take: take, // 몇 개를 가져올지
+            where,
+            orderBy: { create_dt: "desc" },
+            skip,
+            take,
             select: {
                 id: true,
                 board_title: true,
@@ -170,15 +175,23 @@ export const getBoardList = async (req, res) => {
                 nickname: true,
                 user: { select: { corp: true } },
                 recommend_cnt: true,
+
+                likes: userId
+                    ? { where: { user_id: userId }, select: { id: true }, take: 1 }
+                    : false,
             },
         });
 
         const formattedPosts = posts.map(post => ({
-            ...post,
             id: post.id.toString(),
+            board_title: post.board_title,
+            create_dt: post.create_dt,
+            nickname: post.nickname,
+            user: post.user,
+            recommend_cnt: post.recommend_cnt,
+            liked: userId ? post.likes.length > 0 : false,
         }));
 
-        // 데이터와 함께 메타 정보(전체 개수 등)를 반환
         return res.status(200).json({
             posts: formattedPosts,
             totalCount,
@@ -211,7 +224,7 @@ export const toggleLike = async (req, res) => {
         );
     }
     logger().info(
-        `${printUserInfo(req)}가 ${req.params.id} 추천 토글. 상태 :${result.like ? "👍" : "👎"}`
+        `${printUserInfo(req)} / ${req.params.id}번 게시글 추천 토글. 상태 :${result.like ? "👍" : "👎"}`
     );
     return res.status(result.code).json({ message: result.message, like: result.like });
 };

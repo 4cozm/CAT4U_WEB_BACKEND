@@ -218,7 +218,7 @@ export async function deleteBoardService(user, board_id) {
 }
 
 export async function toggleLikeService(req) {
-    const userId = BigInt(req.user.character_id);
+    const userId = BigInt(req.user.characterId);
     const boardId = BigInt(req.params.id);
     const prisma = getPrisma();
     if (!userId || !boardId) {
