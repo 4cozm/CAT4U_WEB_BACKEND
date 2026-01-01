@@ -1,10 +1,11 @@
 import express from "express";
 import {
     createBoard,
+    deleteBoard,
     editBoard,
     getBoardDetail,
     getBoardList,
-    deleteBoard,
+    toggleLike,
 } from "../controllers/boardController.js";
 
 const boardRouter = express.Router();
@@ -15,5 +16,6 @@ boardRouter.get("/", getBoardList);
 boardRouter.get("/detail", getBoardDetail);
 boardRouter.patch("/:id", editBoard);
 boardRouter.delete("/:id", deleteBoard);
+boardRouter.post("/:id/like", toggleLike);
 
 export default boardRouter;

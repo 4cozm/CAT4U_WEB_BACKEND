@@ -23,6 +23,7 @@ model Users {
 
   upload_sessions   UploadSession[]
   boards            Board[]  @relation("UserBoards")
+  board_likes       BoardLike[]
 
   @@map("users")
 }
@@ -63,6 +64,7 @@ model Board {
 
   user            Users     @relation("UserBoards", fields: [nickname], references: [nickname], onDelete: Cascade)
   histories       BoardHistory[]
+  likes           BoardLike[]
 
   @@index([id, type])
   @@index([type, create_dt])
@@ -131,4 +133,18 @@ model UploadSession {
   @@index([file_id])
   @@index([user_id]) 
   @@map("uploadSession") 
+}
+
+model BoardLike {
+  id Int @id @default(autoincrement())
+  user_id BigInt
+  board_id BigInt
+  created_at DateTime @default(now())
+
+  user Users @relation(fields: [user_id],references: [character_id],onDelete: Cascade)
+  board Board @relation(fields: [board_id],references: [id],onDelete: Cascade)
+  @@unique([user_id, board_id])
+  @@index([board_id])
+  @@index([user_id])
+  @@map("boardLike")
 }
