@@ -1,4 +1,5 @@
 import { isAllowedEditRole } from "../utils/eveRoleUtils.js";
+import { rethrow } from "../utils/rethrow.js";
 import { getPrisma } from "./prismaService.js";
 import { applyFileRefCountDelta } from "./s3RefService.js";
 //logger 호출 금지. 컨트롤러 레벨에서 호출 하세용
@@ -11,13 +12,6 @@ function toBigInt(v, fallback = 0n) {
     } catch {
         return fallback;
     }
-}
-
-function rethrow(err) {
-    if (err instanceof Error) {
-        throw err;
-    }
-    throw new Error(String(err));
 }
 
 function getNickname(user) {
@@ -218,6 +212,52 @@ export async function deleteBoardService(user, board_id) {
                 id: deleted.id.toString(),
             },
         };
+    } catch (err) {
+        rethrow(err);
+    }
+}
+
+export async function toggleLikeService(req) {
+    const userId = BigInt(req.user.character_id);
+    const boardId = BigInt(req.params.id);
+    const prisma = getPrisma();
+    if (!userId || !boardId) {
+        return { ok: false, code: 400, message: "필수 정보가 빠졌다옹.." };
+    }
+
+    try {
+        const result = await prisma.$transaction(async tx => {
+            const existing = await tx.boardLike.findUnique({
+                where: { user_id_board_id: { user_id: userId, board_id: boardId } },
+                select: { id: true },
+            });
+
+            if (existing) {
+                await tx.boardLike.delete({
+                    where: { user_id_board_id: { user_id: userId, board_id: boardId } },
+                });
+
+                await tx.board.update({
+                    where: { id: boardId },
+                    data: { recommend_cnt: { decrement: 1 } },
+                });
+
+                return { ok: true, code: 200, like: false, message: "👎따봉을 회수했다옹" };
+            }
+
+            await tx.boardLike.create({
+                data: { user_id: userId, board_id: boardId },
+            });
+
+            await tx.board.update({
+                where: { id: boardId },
+                data: { recommend_cnt: { increment: 1 } },
+            });
+
+            return { ok: true, code: 200, like: true, message: "👍게시글에 따봉을 줬다옹" };
+        });
+
+        return result;
     } catch (err) {
         rethrow(err);
     }

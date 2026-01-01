@@ -2,6 +2,7 @@ import {
     createBoardService,
     deleteBoardService,
     editBoardService,
+    toggleLikeService,
 } from "../service/boardService.js";
 import { getPrisma } from "../service/prismaService.js";
 import { resolveOptimizedMediaUrls } from "../service/s3RefService.js";
@@ -200,4 +201,17 @@ export const deleteBoard = async (req, res) => {
         `${printUserInfo(req)} 게시글 삭제 요청. 게시글 ID :${req.params.id} status : ${edited.code} , message : ${edited.message}`
     );
     return res.status(edited.code).json({ message: edited.message });
+};
+
+export const toggleLike = async (req, res) => {
+    const result = await toggleLikeService(req);
+    if (!result.ok && result.code !== 400) {
+        logger().warn(
+            `${printUserInfo(req)} / 게시글 id:${req.params.id} 게시글 로직 처리중 서버측 에러 발생`
+        );
+    }
+    logger().info(
+        `${printUserInfo(req)}가 ${req.params.id} 추천 토글. 상태 :${result.like ? "👍" : "👎"}`
+    );
+    return res.status(result.code).json({ message: result.message, like: result.like });
 };
