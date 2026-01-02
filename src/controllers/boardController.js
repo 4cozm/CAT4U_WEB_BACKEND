@@ -2,6 +2,7 @@ import {
     createBoardService,
     deleteBoardService,
     editBoardService,
+    getFeedService,
     toggleLikeService,
 } from "../service/boardService.js";
 import { getPrisma } from "../service/prismaService.js";
@@ -227,4 +228,13 @@ export const toggleLike = async (req, res) => {
         `${printUserInfo(req)} / ${req.params.id}번 게시글 추천 토글. 상태 :${result.like ? "👍" : "👎"}`
     );
     return res.status(result.code).json({ message: result.message, like: result.like });
+};
+
+export const getFeed = async (req, res) => {
+    try {
+        const result = await getFeedService(req);
+        return res.status(200).json(result);
+    } catch (err) {
+        logger().warn("피드 출력중 오류 발생", err);
+    }
 };
