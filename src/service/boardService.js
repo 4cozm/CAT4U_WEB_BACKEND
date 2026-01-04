@@ -1,7 +1,10 @@
+import { CACHE_TTL_LATEST, CACHE_TTL_TOP } from "../config/serverConfig.js";
 import { isAllowedEditRole } from "../utils/eveRoleUtils.js";
 import { rethrow } from "../utils/rethrow.js";
 import { getPrisma } from "./prismaService.js";
+import { createFeedCacheUtils, getRedisClient } from "./redisService.js";
 import { applyFileRefCountDelta } from "./s3RefService.js";
+
 //logger 호출 금지. 컨트롤러 레벨에서 호출 하세용
 function toBigInt(v, fallback = 0n) {
     try {
@@ -25,7 +28,7 @@ export async function createBoardService(user, payload) {
 
         const nickname = getNickname(user);
         const prisma = getPrisma();
-        await prisma.$transaction(async tx => {
+        const result = await prisma.$transaction(async tx => {
             const created = await tx.board.create({
                 data: {
                     type,
@@ -46,6 +49,8 @@ export async function createBoardService(user, payload) {
                 debug: true,
             });
 
+            await invalidateLatestFeed(); //캐싱 초기화
+
             return {
                 ok: true,
                 code: 201,
@@ -57,6 +62,7 @@ export async function createBoardService(user, payload) {
                 },
             };
         });
+        return result;
     } catch (err) {
         rethrow(err);
     }
@@ -256,9 +262,112 @@ export async function toggleLikeService(req) {
 
             return { ok: true, code: 200, like: true, message: "👍게시글에 따봉을 줬다옹" };
         });
-
+        await invalidateTopMonthFeed(); // TOP 게시글 캐싱 초기화
         return result;
     } catch (err) {
         rethrow(err);
     }
+}
+const feedCache = createFeedCacheUtils(); //유팅 통합 로드
+
+export async function getFeedService() {
+    const { monthKeyKST, monthRangeKST, redisGetJson, redisSetJson, getVersion, withBuildLock } =
+        feedCache;
+    const prisma = getPrisma();
+    const redis = getRedisClient();
+
+    const yyyymm = monthKeyKST();
+
+    //최신글 캐시 키
+    const latestVerKey = "feed:latest:ver";
+    const latestVer = await getVersion(redis, latestVerKey);
+    const latestDataKey = `feed:latest:v${latestVer}`;
+    const latestLockKey = `feed:latest:lock:v${latestVer}`;
+
+    //이번달 TOP 캐시 키
+
+    const topVerKey = `feed:top:${yyyymm}:ver`;
+    const topVer = await getVersion(redis, topVerKey);
+    const topDataKey = `feed:top:${yyyymm}:v${topVer}`;
+    const topLockKey = `feed:top:${yyyymm}:lock:v${topVer}`;
+
+    const [cachedLatest, cachedTop] = await Promise.all([
+        redisGetJson(redis, latestDataKey),
+        redisGetJson(redis, topDataKey),
+    ]);
+
+    // 둘 다 있으면 바로 반환
+    if (cachedLatest && cachedTop) {
+        return { latest: cachedLatest, top: cachedTop, yyyymm };
+    }
+
+    // 2) 없으면 필요한 것만 빌드 (락으로 DB 폭주 방지)
+    let latest = cachedLatest;
+    if (!latest) {
+        const built = await withBuildLock(redis, latestLockKey, async () => {
+            const rows = await prisma.board.findMany({
+                where: { is_deleted: 0 },
+                orderBy: { create_dt: "desc" },
+                take: 5,
+                select: {
+                    id: true,
+                    type: true,
+                    board_title: true,
+                    create_dt: true,
+                    recommend_cnt: true,
+                    nickname: true,
+                },
+            });
+
+            await redisSetJson(redis, latestDataKey, rows, CACHE_TTL_LATEST);
+            return rows;
+        });
+
+        // 락 못 잡았으면(다른 요청이 빌드 중) 캐시 재조회
+        latest = built ?? (await redisGetJson(redis, latestDataKey)) ?? [];
+    }
+
+    let top = cachedTop;
+    if (!top) {
+        const built = await withBuildLock(redis, topLockKey, async () => {
+            const { start, end } = monthRangeKST(yyyymm);
+
+            const rows = await prisma.board.findMany({
+                where: {
+                    create_dt: { gte: start, lt: end },
+                    is_deleted: 0,
+                    recommend_cnt: { gte: 1 }, // 추천수 1 이상만
+                },
+                orderBy: [{ recommend_cnt: "desc" }, { create_dt: "desc" }],
+                take: 5,
+                select: {
+                    id: true,
+                    type: true,
+                    board_title: true,
+                    create_dt: true,
+                    recommend_cnt: true,
+                    nickname: true,
+                },
+            });
+
+            await redisSetJson(redis, topDataKey, rows, CACHE_TTL_TOP);
+            return rows;
+        });
+
+        top = built ?? (await redisGetJson(redis, topDataKey)) ?? [];
+    }
+    return { latest, top, yyyymm };
+}
+
+/** 인자 없는 invalidate (최신글) */
+export async function invalidateLatestFeed() {
+    const redis = getRedisClient();
+    await redis.incr("feed:latest:ver");
+}
+
+/** 인자 없는 invalidate (이번달 TOP) */
+export async function invalidateTopMonthFeed() {
+    const redis = getRedisClient();
+    const yyyymm = feedCache.monthKeyKST();
+    await redis.incr(`feed:top:${yyyymm}:ver`);
 }

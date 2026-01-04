@@ -5,6 +5,7 @@ import {
     editBoard,
     getBoardDetail,
     getBoardList,
+    getFeed,
     toggleLike,
 } from "../controllers/boardController.js";
 
@@ -17,5 +18,6 @@ boardRouter.get("/detail", getBoardDetail);
 boardRouter.patch("/:id", editBoard);
 boardRouter.delete("/:id", deleteBoard);
 boardRouter.post("/:id/like", toggleLike);
+boardRouter.get("/feed", getFeed);
 
 export default boardRouter;

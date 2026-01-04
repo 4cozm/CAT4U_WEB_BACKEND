@@ -70,3 +70,6 @@ export const emojiSpecDefinition = {
 };
 
 export const DAYS_BEFORE_DELETION = 7; //게시글 삭제 처리후 몇일후 지울건지
+
+export const CACHE_TTL_LATEST = 60; // 최신글을 캐싱하는데 필요한 최소 TTL
+export const CACHE_TTL_TOP = 180; //이번달 최고 인기글 캐싱하는데 필요한 최소 TTL

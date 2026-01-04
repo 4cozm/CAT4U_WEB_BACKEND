@@ -22,8 +22,9 @@ model Users {
   Role              String?         @db.VarChar(64)
 
   upload_sessions   UploadSession[]
-  boards            Board[]  @relation("UserBoards")
+  boards            Board[]  @relation("Boards/User")
   board_likes       BoardLike[]
+  comments Comment[] @relation("Comment/User")
 
   @@map("users")
 }
@@ -62,10 +63,12 @@ model Board {
   updated_dt      DateTime  @updatedAt
   last_editor_name  String?
 
-  user            Users     @relation("UserBoards", fields: [nickname], references: [nickname], onDelete: Cascade)
+  user            Users     @relation("Boards/User", fields: [nickname], references: [nickname], onDelete: Cascade)
+
   histories       BoardHistory[]
   likes           BoardLike[]
-
+  comments Comment[] @relation("Comment/Board")
+  
   @@index([id, type])
   @@index([type, create_dt])
   @@index([is_deleted])
@@ -147,4 +150,20 @@ model BoardLike {
   @@index([board_id])
   @@index([user_id])
   @@map("boardLike")
+}
+
+model Comment {
+  id BigInt @id  @default(autoincrement())
+  user_id BigInt
+  board_id BigInt
+  content String @db.Text
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  is_deleted Int @default(0) @db.TinyInt
+
+  user Users @relation("Comment/User",fields: [user_id],references: [character_id],onDelete: Cascade)
+  board Board @relation("Comment/Board",fields: [board_id],references: [id],onDelete: Cascade)
+
+  @@index([board_id, created_at])
+  @@map("comment")
 }
