@@ -33,6 +33,8 @@ const secretNames = [
     "AWS-S3-UPLOAD-PEM", // 업로드용 버킷에 접근 권한 쿠키를 발급하는 용도
     "AWS-CLOUDFRONT-PUBLIC-KEY-ID",
     "AWS-CLOUDFRONT-KEY-PEM",
+    "GOOGLE-GENERATIVE-AI-API-KEY", //기본적으로 ai 환경변수를 이 이름으로 호출하게 되있음
+    "GEMINI-MODEL",
 ];
 
 //공용 개발키 로드
