@@ -209,6 +209,10 @@ export async function deleteBoardService(user, board_id) {
             }),
         ]);
 
+        //게시글 삭제시 , 최신글 일 가능성 & TOP 5일 가능성을 고려해서 전부 캐싱 초기화
+        await invalidateLatestFeed();
+        await invalidateTopMonthFeed();
+
         return {
             ok: true,
             code: 200,
