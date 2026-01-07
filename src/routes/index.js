@@ -3,6 +3,7 @@ import blockNoteRouter from "./blockNoteRoute.js";
 import boardRouter from "./boardRoute.js";
 import commentRouter from "./commentRouter.js";
 import esiRouter from "./eveAuthRoute.js";
+import aiChatRouter from "./aiChatRoute.js";
 
 const router = express.Router();
 
@@ -10,5 +11,6 @@ router.use("/esi", esiRouter);
 router.use("/blockNote", blockNoteRouter);
 router.use("/board", boardRouter);
 router.use("/comment", commentRouter);
+router.use("/aiChat", aiChatRouter);
 
 export default router;

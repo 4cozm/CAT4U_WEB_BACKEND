@@ -7,14 +7,23 @@ import router from "./routes/index.js";
 
 export async function createApp() {
     const app = express();
-    app.set("trust proxy", 1); // Caddy 뒤에 있을때 설정 (X-Forwarded-* 신뢰)
-    app.use(cookieParser());
-    const sessionMiddleware = await createSessionMiddleware(); // express와 한몸이라 순서를 명확하게 하기 위해 여기에 작성함
-    app.use(sessionMiddleware);
-    app.use(requireAuth);
 
+    app.set("trust proxy", 1);
+
+    app.use((req, res, next) => {
+        if (req.url.startsWith("/api/") && req.url.length > 5 && req.url.endsWith("/")) {
+            req.url = req.url.slice(0, -1);
+        }
+        next();
+    });
+    app.use(express.json({ limit: "2mb" }));
+    app.use(cookieParser());
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
+
+    const sessionMiddleware = await createSessionMiddleware();
+    app.use(sessionMiddleware);
+    app.use(requireAuth);
 
     app.use("/api", router);
 
