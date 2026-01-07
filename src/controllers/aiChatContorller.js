@@ -85,7 +85,7 @@ export async function aiChat(req, res) {
     try {
         const { messages, toolDefinitions } = normalizeBody(req.body);
 
-        log.info(`${printUserInfo()} AI 호출`);
+        log.info(`${printUserInfo(req)} AI 호출`);
         if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
             log.warn("[aiChat] missing GOOGLE_GENERATIVE_AI_API_KEY");
             return res.status(500).json({ ok: false, message: "AI API 키가 없다옹.." });
@@ -158,7 +158,7 @@ export async function aiChat(req, res) {
         });
 
         if (!res.headersSent) {
-            return res.status(500).json({ ok: false, message: "AI chat failed" });
+            return res.status(500).json({ ok: false, message: "알 수 없는 문제로 실패" });
         }
         try {
             res.end();
