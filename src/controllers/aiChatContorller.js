@@ -8,29 +8,35 @@ import {
 import { convertToModelMessages, streamText } from "ai";
 import { logger } from "../utils/logger.js";
 import printUserInfo from "../utils/printUserInfo.js";
+
 const SYSTEM_INSTRUCTION = `
-너는 "문서 편집자"다옹. 사용자가 요청하면 문서를 정리/수정/편집해라.
+너는 고양이 "문서 편집자"다옹. 사용자가 요청하면 문서를 정리/수정/편집해라.
 
 [출력 규칙(절대)]
-- 결과는 오직 applyDocumentOperations 툴 호출로만 제출.
-- 일반 텍스트로 답하면 실패.
+- 결과는 오직 applyDocumentOperations 툴 호출로만 제출해라.
+- 일반 텍스트로 답하면 실패다옹.
+- 가급적 한국어로 작성해라.
 
-[편집 기본]
-- 문서는 "구조"가 우선: 제목/섹션/목록/표/코드/주의를 적절히 사용.
-- 안전한 HTML 태그만 사용: p,h1~h4,ul/ol/li,blockquote,pre/code,table(thead/tbody/tr/th/td),hr,strong,em,code.
-- 확신 없는 특수 위젯/커스텀 블록은 쓰지 말고 일반 블록으로 표현.
+[편집 규칙]
+- 구조 우선: 제목/섹션/목록/표/코드/주의를 적절히 사용해라.
+- 안전한 태그만 사용해라:
+  p, h1~h4, ul/ol/li, blockquote, pre/code, table(thead/tbody/tr/th/td), hr, strong, em, code
+- "최상위 태그 1개" 규칙(중요):
+  - update.block / add.blocks의 각 문자열은 반드시 최상위 태그가 1개만 있어야 한다.
+  - 여러 블록이 필요하면 operations를 여러 개로 쪼개라.
+    (예: h1 1개 + p 1개면 operations를 2개로)
 
-[툴 페이로드 규칙]
-- applyDocumentOperations.operations는 1개 이상.
-- update.block / add.blocks의 각 문자열은 "최상위 태그 1개"만 허용.
-  (여러 블록이 필요하면 operations를 여러 개로 나눠라)
+[applyDocumentOperations 형식 예시]
+- update(권장 기본형):
+  { "type": "update", "id": "<targetBlockId>$", "block": "<h2>제목</h2>" }
 
-[EVE 정보 출처]
-EVE 관련 질문 중 정확성/수치/패치/메커니즘/데이터가 중요하면 (가능하면 googleSearch로) 아래 우선순위로 확인:
-- 정확한 사실/메커니즘: Fuzzworks → EVE University Wiki
-- 반응/메타/여론: DCInside EVE 갤 → r/Eve
-- 데이터 레퍼런스: EVE Ref
-상충 시 출처 차이를 짧게 언급하고 보수적으로 요약. 불확실하면 확인 질문 1개만.
+- add(여러 블록 추가 시):
+  { "type": "add", "after": "<targetBlockId>$", "blocks": ["<p>문단</p>", "<ul><li>항목</li></ul>"] }
+
+주의:
+- block/blocks 안에 "<h1>...</h1><p>...</p>" 같이 최상위 태그를 여러 개 넣지 마라.
+- 모르겠으면 표/특수 위젯 욕심내지 말고, 안전한 태그(p, ul/ol 등)로 보수적으로 편집해라.
+
 `.trim();
 
 function normalizeBody(reqBody) {
@@ -67,6 +73,10 @@ export async function aiChat(req, res) {
         }
 
         const modelId = process.env.GEMINI_MODEL;
+        if (!modelId) {
+            log.warn("[aiChat] missing GEMINI_MODEL");
+            return res.status(500).json({ ok: false, message: "GEMINI_MODEL 환경변수가 없다옹" });
+        }
 
         if (!Array.isArray(messages)) {
             log.warn("[aiChat] invalid messages (not array)");
@@ -80,20 +90,24 @@ export async function aiChat(req, res) {
 
         const system = `${SYSTEM_INSTRUCTION}\n\n${aiDocumentFormats.html.systemPrompt}`;
 
+        // ✅ 중요한 포인트: toolDefinitionsToToolSet 결과를 그대로 넣기
         const tools = toolDefinitionsToToolSet(toolDefinitions);
         const modelMessages = convertToModelMessages(injectDocumentStateMessages(messages));
 
+        log.info("[aiChat] request summary", {
+            modelId,
+            messagesLen: messages.length,
+            toolNames: Object.keys(tools || {}),
+        });
+
         const result = await streamText({
-            model: google(modelId, {
-                googleSearchRetrieval: {},
-            }),
+            model: google(modelId),
             system,
             messages: modelMessages,
-            tools: {
-                ...tools,
-            },
+            tools,
+            toolChoice: "required",
             maxSteps: 5,
-            toolChoice: "auto",
+            maxRetries: 0,
         });
         const r = /** @type {any} */ (result);
         return r.pipeUIMessageStreamToResponse(res);
@@ -101,7 +115,6 @@ export async function aiChat(req, res) {
         const status = pickStatus(err);
         const msg = pickMessage(err);
 
-        // 429 (quota/rate limit)만 별도 안내
         const isQuota =
             status === 429 ||
             msg.includes("Quota exceeded") ||
