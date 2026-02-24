@@ -1,5 +1,5 @@
 // src/controllers/aiChatController.js
-import { google } from "@ai-sdk/google";
+import { openai } from "@ai-sdk/openai";
 import {
     aiDocumentFormats,
     injectDocumentStateMessages,
@@ -67,15 +67,15 @@ export async function aiChat(req, res) {
         const { messages, toolDefinitions } = normalizeBody(req.body);
 
         log.info(`${printUserInfo(req)} AI 호출`);
-        if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-            log.warn("[aiChat] missing GOOGLE_GENERATIVE_AI_API_KEY");
+        if (!process.env.OPENAI_API_KEY) {
+            log.warn("[aiChat] missing OPENAI_API_KEY");
             return res.status(500).json({ ok: false, message: "AI API 키가 없다옹.." });
         }
 
-        const modelId = process.env.GEMINI_MODEL;
+        const modelId = process.env.OPENAI_MODEL;
         if (!modelId) {
-            log.warn("[aiChat] missing GEMINI_MODEL");
-            return res.status(500).json({ ok: false, message: "GEMINI_MODEL 환경변수가 없다옹" });
+            log.warn("[aiChat] missing OPENAI_MODEL");
+            return res.status(500).json({ ok: false, message: "OPENAI_MODEL 환경변수가 없다옹" });
         }
 
         if (!Array.isArray(messages)) {
@@ -101,7 +101,7 @@ export async function aiChat(req, res) {
         });
 
         const result = await streamText({
-            model: google(modelId),
+            model: openai(modelId),
             system,
             messages: modelMessages,
             tools,
@@ -119,7 +119,10 @@ export async function aiChat(req, res) {
             status === 429 ||
             msg.includes("Quota exceeded") ||
             msg.includes("RESOURCE_EXHAUSTED") ||
-            msg.includes("rate limit");
+            msg.includes("rate limit") ||
+            msg.includes("insufficient_quota") ||
+            msg.includes("quota_exceeded") ||
+            msg.includes("rate_limit_exceeded");
 
         if (isQuota) {
             log.warn("[aiChat] quota/ratelimit", { status: status ?? 429, message: msg });

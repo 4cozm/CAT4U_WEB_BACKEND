@@ -17,7 +17,7 @@
     "author": "Coding Cats",
     "license": "MIT",
     "dependencies": {
-        "@ai-sdk/google": "^2.0.52",
+        "@ai-sdk/openai": "^3.0.31",
         "@aws-sdk/client-s3": "^3.896.0",
         "@aws-sdk/client-sqs": "^3.955.0",
         "@aws-sdk/cloudfront-signer": "^3.957.0",
