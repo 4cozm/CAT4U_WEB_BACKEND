@@ -19,9 +19,6 @@ export const SDE_LIVE_PATH = path.join(SDE_DIR, "sde_live.sqlite");
 /** 새로 다운로드 중인 임시 SQLite 파일 경로 */
 export const SDE_NEW_PATH = path.join(SDE_DIR, "sde_new.sqlite");
 
-/** 마지막으로 적용된 MD5 해시값을 기록하는 파일 경로 */
-export const SDE_MD5_PATH = path.join(SDE_DIR, ".last_md5");
-
 /** SDE 메타데이터 (업데이트 시간, 버전 등)를 기록하는 JSON 파일 경로 */
 export const SDE_METADATA_PATH = path.join(SDE_DIR, "sde_metadata.json");
 

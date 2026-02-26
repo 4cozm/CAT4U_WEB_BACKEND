@@ -127,4 +127,4 @@ dmypy.json
 # EVE Online SDE (Static Data Export) — 대용량 바이너리 제외
 data/sde/*.sqlite
 data/sde/*.bz2
-data/sde/.last_md5
+data/sde/sde_metadata.json
