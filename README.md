@@ -1,69 +1,102 @@
-# 캣포유 웹 (Cat4U Web)
+# CAT4U Web Backend
 
-![image](https://github.com/user-attachments/assets/abfb2237-e5b3-46d8-9473-6ccbba1cea79)
-
-이브 온라인 코퍼레이션 내부용 커뮤니티 웹입니다.  
-피팅/독트린 공유, 게시판, 권한 기반 접근 등 코퍼 운영에 필요한 기능을 제공합니다.
+CAT4U는 EVE Online 커뮤니티를 위한 고도화된 지식 공유 및 가이드 관리 플랫폼의 백엔드 시스템입니다.
+단순한 게시판 형태를 넘어, 게임의 방대한 정적 데이터(SDE)와 패치노트를 AI가 분석하여 기존에 작성된 가이드 문서들에 미치는 영향을 자동으로 추적하고 관리하는 형태의 인텔리전스 문서를 제공합니다.
 
 ---
 
-## 프로젝트 목표
+## 🚀 주요 기능 (Core Features)
 
-- EVE 플레이어를 위한 **게시판 기반 정보 공유** (피팅/독트린/가이드 등)
-- **EVE SSO(OAuth2) 로그인**과 권한 기반 기능 제공
-- 업로드 파일(S3) 및 에디터(BlockNote) 기반의 콘텐츠 작성 경험 제공
-- 운영 환경에서 관측/에러 추적(Sentry)과 보안 설정을 단계적으로 강화
+### 1. AI-Driven 패치 검증 파이프라인 (Patch Impact Tracking)
+* **패치노트 크롤러 (`patchNoteCrawler.js`)**: 공식 EVE Online 홈페이지의 패치노트를 자동으로 수집.
+* **영향도 분석**: AI SDK를 활용해 수집된 패치 내용 중, 게임 아이템(함선, 모듈 등) 데이터 변경 사항을 파악.
+* **자동 이슈 레이블링**: 변경 사항과 연관된 `태그(Tag)`가 포함된 기존 `Guide` 문서를 탐색하여, 갱신이 필요하다는 Issue Status (`IssueStatus.OPEN`)를 자동 부과.
 
----
+### 2. SDE(Static Data Export) 통합 팩트체크 로직
+* 게임 내 실제 데이터 모델(SDE)과 연동하여 문서 작성 시 정확한 수치와 정보를 제공.
+* 유저가 작성/수정한 문서 및 AI가 번역하거나 생성한 초안(Draft)에 대해 기초 데이터 검증(Fact-Check) 수행.
 
-## 서비스 구성
+### 3. Human-in-the-Loop 기반 문서 승인 시스템
+* 단순 AI 의존 모델을 탈피하여, `GuideDraft`의 신뢰성을 담보하기 위해 다수(기본 3인)의 유저 승인(Approval)을 요구.
+* 유저 리뷰(Reviewing) -> 승인 완료(Approved) -> AI 문서 포매팅(Formatting) -> 최종 발행(Published)되는 체계적인 워크플로우 구성.
 
-- **Frontend**
-  - Next.js 기반 정적 빌드 후 **S3/CloudFront**로 서빙
-- **Backend**
-  - Node.js(Express) API 서버
-  - Caddy 리버스 프록시로 HTTPS 제공
-- **Storage / CDN**
-  - S3 업로드 및 CloudFront 서빙
-  - 프로덕트 환경은 서명 URL/쿠키 기반 접근 제어로 전환 예정
-- **Config / Secret**
-  - Key Vault 기반 환경변수 관리(로드 타이밍 고려)
+### 4. 확장 가능한 인프라 및 파일 처리 (AWS & Redis)
+* **AWS S3 / CloudFront**: Presigned URL을 통한 대용량 에셋(이미지, 영상) 안전 업로드/서빙.
+* **AWS SQS**: `sqsWorker.js`를 통해 비동기 백그라운드 작업(파일 최적화 및 찌꺼기 데이터 정리) 수행.
+* **Redis**: 빠르고 일관된 인증 세션 및 API Rate-limiting 등의 캐싱 레이어 역할.
 
 ---
 
-## 사용 기술
+## 🛠 기술 스택 (Tech Stack)
 
-| 구분 | 기술 |
-| --- | --- |
-| Frontend | Next.js, React, Tailwind CSS |
-| Editor | BlockNote (@blocknote/*) |
-| Backend | Node.js (Express) |
-| DB | MySQL / MariaDB, Prisma |
-| Cache / Queue | Redis, SQS(일부 워커) |
-| Auth | JWT, EVE SSO(OAuth2) |
-| Infra | Docker, Caddy, PM2 |
-| Observability | Sentry(도입 예정) |
+* **Runtime & Framework**: Node.js (v20+), Express (v5)
+* **Database & ORM**: MariaDB / PostgreSQL 호환 모델링, Prisma ORM
+* **Caching & Queue**: Redis
+* **AI Integration**: `@google/generative-ai`, `@ai-sdk/google`, `ai`
+* **Cloud Infrastructure**: AWS S3, AWS SQS, AWS CloudFront
+* **Authentication**: EVE SSO 기반 Oauth 연동 (Bcrypt, JWT)
+* **Task Scheduling & Utility**: Node-Cron (스케줄러), Cheerio (HTML 파싱), Winston (로깅)
+* **Validation & Type**: Zod, ESLint, Prettier, Husky
 
 ---
 
-## 로컬 실행 (개요)
+## 📂 주요 디렉토리 구조 (Directory Structure)
 
-1) Frontend
-- `npm install`
-- `npm run dev`
+```text
+.
+├── src/
+│   ├── config/          # 데이터베이스, AWS, Redis 등 인프라 설정
+│   ├── controllers/     # API 라우팅 모듈 (Express Routing)
+│   ├── services/        # 주요 비즈니스 로직 (Auth, SDE 검증, S3 연동 등)
+│   ├── jobs/            # 백그라운드 스케줄러 (크롤링, SDE 갱신, 패치노트 수집)
+│   └── app.js / server.js
+├── prisma/
+│   ├── schema.prisma    # Prisma 데이터베이스 스키마 정의 (User, Board, Draft, File 등)
+│   └── migrations/      # DB 마이그레이션 이력
+├── data/                # 로컬에 다운로드/저장되는 SDE 참조 파일 등
+└── package.json         # 모듈 의존성 및 스크립트
+```
 
-2) Backend
-- `.env` 또는 Key Vault 로딩 스크립트 준비
-- DB/Redis 실행(Docker 권장)
-- `npm install`
-- `npm run start`
+---
+
+## ⚙️ 실행 방법 (Getting Started)
+
+### 환경 변수 설정 (.env)
+루트 디렉토리에 `.env` 파일을 생성하고 다음 필수 항목들을 입력합니다.
+```env
+# Database
+DATABASE_URL="mysql://user:password@localhost:3306/cat4u_web"
+
+# Redis
+REDIS_URL="redis://localhost:6379"
+
+# AWS
+AWS_REGION="us-east-1"
+AWS_ACCESS_KEY_ID="..."
+AWS_SECRET_ACCESS_KEY="..."
+AWS_S3_BUCKET_NAME="..."
+AWS_SQS_QUEUE_URL="..."
+
+# AI (Google Gemini)
+GOOGLE_GENERATIVE_AI_API_KEY="..."
+```
+
+### 설치 및 구동
+```bash
+# 1. 의존성 설치
+npm install
+
+# 2. Prisma 클라이언트 생성
+npx prisma generate
+
+# 3. 데이터베이스 동기화 (필요시)
+npx prisma db push
+
+# 4. 개발 서버 실행
+npm run dev
+```
 
 ---
 
-## 운영 메모
-
-- 프로덕트 S3는 현재 퍼블릭 정책이 열려 있을 수 있으며, 추후 **Signed URL/쿠키 기반**으로 전환합니다.
-- 클러스터링(PM2)은 state/세션/웹소켓 등과의 궁합을 검증 후 적용합니다.
-- Sentry는 공개 베타 이후 정책(PII/비용/이벤트 필터)을 확정하고 붙입니다.
-
----
+## 🔒 라이선스
+MIT License (자세한 내용은 `LICENSE` 파일 참조)
