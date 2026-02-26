@@ -273,10 +273,25 @@ model BoardTag {
   @@map("board_tag")
 }
 
+model PatchNoteHub {
+  id           String      @id @db.VarChar(100)
+  last_anchor  String?     @db.VarChar(200)
+  updated_at   DateTime    @updatedAt
+
+  notes        PatchNote[]
+
+  @@map("patch_note_hub")
+}
+
 model PatchNote {
-  id           String        @id // 패치 버전 (예: "v25.01")
-  title        String        @db.VarChar(200)
-  published_at DateTime
+  id           String        @id @db.VarChar(200) 
+  hub_id       String        @db.VarChar(100)
+  title        String        @db.VarChar(200) 
+  patch_date   String?       @db.VarChar(50) // YYYY-MM-DD 형식의 추출된 패치 날짜
+  content      String        @db.Text 
+  published_at DateTime      @default(now())
+  
+  hub          PatchNoteHub  @relation(fields: [hub_id], references: [id], onDelete: Cascade)
   impacts      PatchImpact[]
 
   @@map("patch_note")

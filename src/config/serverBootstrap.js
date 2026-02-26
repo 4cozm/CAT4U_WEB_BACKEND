@@ -1,6 +1,7 @@
 // 서버 시작시 필요한 모듈 설정
 
 import { registerPurgeDeletedBoardsJob } from "../jobs/boardClean.js";
+import { registerPatchCrawlerJob } from "../jobs/patchNoteCrawler.js";
 import { registerSdeUpdaterJob, runSdeUpdate } from "../jobs/sdeUpdater.js";
 import { startSqsWorker } from "../jobs/sqsWorker.js";
 import { buildS3Connection } from "../service/awsS3Client.js";
@@ -27,6 +28,7 @@ export default async function initializeServer() {
         registerPurgeDeletedBoardsJob(); //게시글 정리 CRON
         registerSdeUpdaterJob(); // EVE SDE 자동 갱신 CRON
         runSdeUpdate(); // 서버 시작 시 SDE 체크
+        registerPatchCrawlerJob(); // EVE Patch Notes Crawler CRON
     } catch (error) {
         console.error("🚨 서버 초기화 중 오류 발생:", error);
         process.exit(1);
