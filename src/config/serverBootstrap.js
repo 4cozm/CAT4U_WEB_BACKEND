@@ -1,7 +1,7 @@
 // 서버 시작시 필요한 모듈 설정
 
 import { registerPurgeDeletedBoardsJob } from "../jobs/boardClean.js";
-import { registerSdeUpdaterJob } from "../jobs/sdeUpdater.js";
+import { registerSdeUpdaterJob, runSdeUpdate } from "../jobs/sdeUpdater.js";
 import { startSqsWorker } from "../jobs/sqsWorker.js";
 import { buildS3Connection } from "../service/awsS3Client.js";
 import { connectWithRetry } from "../service/prismaService.js";
@@ -26,6 +26,7 @@ export default async function initializeServer() {
         startSqsWorker(); // SQS 워커 구동 * 백그라운드 작업을 위해서 await 없이 구동
         registerPurgeDeletedBoardsJob(); //게시글 정리 CRON
         registerSdeUpdaterJob(); // EVE SDE 자동 갱신 CRON
+        runSdeUpdate(); // 서버 시작 시 SDE 체크
     } catch (error) {
         console.error("🚨 서버 초기화 중 오류 발생:", error);
         process.exit(1);

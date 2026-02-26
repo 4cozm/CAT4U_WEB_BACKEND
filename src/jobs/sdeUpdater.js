@@ -14,7 +14,7 @@ import axios from "axios";
 import fs from "fs";
 import cron from "node-cron";
 import { pipeline } from "stream/promises";
-import zlib from "zlib";
+import unbzip2 from "unbzip2-stream";
 import {
     FUZZWORK_BZ2_URL,
     FUZZWORK_MD5_URL,
@@ -22,6 +22,7 @@ import {
     SDE_DIR,
     SDE_LIVE_PATH,
     SDE_MD5_PATH,
+    SDE_METADATA_PATH,
     SDE_NEW_PATH,
 } from "../config/sdeConfig.js";
 import { refreshConnection } from "../service/sdeService.js";
@@ -79,10 +80,9 @@ export async function runSdeUpdate() {
         });
 
         const writeStream = fs.createWriteStream(SDE_NEW_PATH);
-        const bunzip2 = zlib.createBunzip2();
 
-        // pipeline: response.data → bunzip2 → writeStream (에러 시 자동 정리)
-        await pipeline(response.data, bunzip2, writeStream);
+        // pipeline: response.data → unbzip2() → writeStream (에러 시 자동 정리)
+        await pipeline(response.data, unbzip2(), writeStream);
 
         log.info("[SDE] 다운로드 및 압축 해제 완료.");
     } catch (err) {
@@ -111,9 +111,21 @@ export async function runSdeUpdate() {
     refreshConnection();
     log.info("[SDE] SQLite 커넥션 갱신 완료.");
 
-    // ── Step 6: 로컬 MD5 기록 ───────────────────────────────
+    // ── Step 6: 로컬 MD5 기록 및 메타데이터 저장 ──────────────────
     fs.writeFileSync(SDE_MD5_PATH, remoteMd5, "utf-8");
-    log.info(`[SDE] 업데이트 완료. 적용 버전 MD5: ${remoteMd5}`);
+    fs.writeFileSync(
+        SDE_METADATA_PATH,
+        JSON.stringify(
+            {
+                updatedAt: new Date().toISOString(),
+                md5: remoteMd5,
+            },
+            null,
+            2
+        ),
+        "utf-8"
+    );
+    log.info(`[SDE] 업데이트 완료. 적용 버전 MD5: ${remoteMd5}, 메타데이터(시간) 기록 완료`);
 }
 
 // ─────────────────────────────────────────────────────────

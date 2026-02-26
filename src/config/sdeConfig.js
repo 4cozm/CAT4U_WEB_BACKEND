@@ -22,6 +22,9 @@ export const SDE_NEW_PATH = path.join(SDE_DIR, "sde_new.sqlite");
 /** 마지막으로 적용된 MD5 해시값을 기록하는 파일 경로 */
 export const SDE_MD5_PATH = path.join(SDE_DIR, ".last_md5");
 
+/** SDE 메타데이터 (업데이트 시간, 버전 등)를 기록하는 JSON 파일 경로 */
+export const SDE_METADATA_PATH = path.join(SDE_DIR, "sde_metadata.json");
+
 /** Fuzzwork SDE bz2 압축 파일 다운로드 URL */
 export const FUZZWORK_BZ2_URL = "https://www.fuzzwork.co.uk/dump/sqlite-latest.sqlite.bz2";
 
