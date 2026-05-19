@@ -21,7 +21,6 @@ import {
     SDE_CRON_SCHEDULE,
     SDE_DIR,
     SDE_LIVE_PATH,
-    SDE_MD5_PATH,
     SDE_METADATA_PATH,
     SDE_NEW_PATH,
 } from "../config/sdeConfig.js";
@@ -55,8 +54,13 @@ export async function runSdeUpdate() {
 
     // ── Step 2: 로컬 해시와 비교 ────────────────────────────
     let localMd5 = null;
-    if (fs.existsSync(SDE_MD5_PATH)) {
-        localMd5 = fs.readFileSync(SDE_MD5_PATH, "utf-8").trim();
+    if (fs.existsSync(SDE_METADATA_PATH)) {
+        try {
+            const metadata = JSON.parse(fs.readFileSync(SDE_METADATA_PATH, "utf-8"));
+            localMd5 = metadata.md5;
+        } catch (err) {
+            log.warn(`[SDE] 메타데이터 파싱 실패: ${err.message}`);
+        }
     }
 
     if (remoteMd5 === localMd5) {
@@ -112,7 +116,6 @@ export async function runSdeUpdate() {
     log.info("[SDE] SQLite 커넥션 갱신 완료.");
 
     // ── Step 6: 로컬 MD5 기록 및 메타데이터 저장 ──────────────────
-    fs.writeFileSync(SDE_MD5_PATH, remoteMd5, "utf-8");
     fs.writeFileSync(
         SDE_METADATA_PATH,
         JSON.stringify(

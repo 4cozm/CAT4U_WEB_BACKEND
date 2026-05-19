@@ -160,7 +160,16 @@ export async function applyFileRefCountDelta(tx, nextContent, opts = {}) {
             where: { file_md5: { in: removed } },
             data: { ref_count: { decrement: 1 } },
         });
-        await tx.$executeRaw`UPDATE file SET ref_count = 0 WHERE ref_count < 0`;
+        // [변경 이유] 기존 코드는 ref_count < 0인 행을 찾기 위해 file 테이블 전체를 스캔했음.
+        // 어차피 음수가 될 수 있는 건 방금 decrement한 removed 목록뿐이므로
+        // 검사 범위를 해당 file_md5로 좁혀 불필요한 풀 스캔을 제거함.
+        await tx.file.updateMany({
+            where: {
+                file_md5: { in: removed },
+                ref_count: { lt: 0 },
+            },
+            data: { ref_count: 0 },
+        });
     }
 
     return { added, removed };

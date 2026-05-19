@@ -14,10 +14,18 @@ export default [
                 console: "readonly",
                 setTimeout: "readonly",
                 clearTimeout: "readonly",
+                URL: "readonly",
             },
         },
         rules: {
-            "no-unused-vars": "warn",
+            "no-unused-vars": [
+                "warn",
+                {
+                    argsIgnorePattern: "^_",
+                    varsIgnorePattern: "^_",
+                    caughtErrorsIgnorePattern: "^_",
+                },
+            ],
             "no-undef": "error",
             "no-console": "off",
             eqeqeq: ["error", "always"],

@@ -2,31 +2,44 @@ generator client {
   provider   = "prisma-client-js"
   engineType = "library"
 }
+
 datasource db {
   provider = "mysql"
 }
 
-
 model Users {
-  id                BigInt          @id @default(autoincrement())
-  character_id      BigInt          @unique
-  nickname          String          @unique @db.VarChar(64)
+  id                BigInt    @id @default(autoincrement())
+  character_id      BigInt    @unique
+  nickname          String    @unique @db.VarChar(64)
   corp              Int
-  refresh_token     String          @db.VarChar(64)
+  refresh_token     String    @db.VarChar(64)
   access_expires_at DateTime?
   last_login_at     DateTime?
-  last_login_ip     String?         @db.VarChar(45)
-  scopes            String?         @db.VarChar(255)
-  created_at        DateTime        @default(now())
-  updated_at        DateTime        @updatedAt
-  Role              String?         @db.VarChar(64)
+  last_login_ip     String?   @db.VarChar(45)
+  scopes            String?   @db.VarChar(255)
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  Role              String?   @db.VarChar(64)
 
-  upload_sessions   UploadSession[]
-  boards            Board[]  @relation("Boards/User")
-  board_likes       BoardLike[]
-  comments Comment[] @relation("Comment/User")
+  upload_sessions UploadSession[]
+  boards          Board[]         @relation("Boards/User")
+  board_likes     BoardLike[]
+  comments        Comment[]       @relation("Comment/User")
+
+  // AI Pipeline relations
+  drafts          GuideDraft[]
+  draft_approvals DraftApproval[]
 
   @@map("users")
+}
+
+// ---------------------------------------------------------------------------
+// 1. 기초 분류 및 상태 Enums
+// ---------------------------------------------------------------------------
+
+enum GuideCategory {
+  FACT // SDE 기반 기초 정보 (인간 작성)
+  CONTEXT // 위키 기반 공략 (AI 작성/파싱)
 }
 
 enum BoardType {
@@ -35,7 +48,6 @@ enum BoardType {
   FITTING
   MARKET
 }
-
 
 enum FileStatus {
   uploaded
@@ -49,66 +61,119 @@ enum UploadStatus {
   expired
 }
 
+enum DraftStatus {
+  PENDING // 크롤링/번역 직후
+  REVIEWING // 인간 검토 진행 중
+  APPROVED // 3인 승인 완료
+  FORMATTING // AI 포매팅 작업 중
+  PUBLISHED // 라이브 게시판으로 이전 완료
+}
+
+enum IssueStatus {
+  OPEN // 패치로 인한 갱신 필요
+  RESOLVED // 수정 완료
+  DISMISSED // 해당 사항 없음 판정
+}
+
+// ---------------------------------------------------------------------------
+// 2. 핵심 데이터 모델 (Board & Draft)
+// ---------------------------------------------------------------------------
+
 model Board {
-  id              BigInt    @id @default(autoincrement())
-  type            BoardType
-  nickname String @db.VarChar(64)
-  board_title     String    @db.VarChar(200)
+  id       BigInt        @id @default(autoincrement())
+  type     BoardType
+  category GuideCategory @default(CONTEXT)
+  status   IssueStatus   @default(RESOLVED) // 패치 영향 시 OPEN으로 변경
 
-  board_content   Json
+  nickname      String @db.VarChar(64)
+  board_title   String @db.VarChar(200)
+  board_content Json // BlockNote JSON
+  content_hash  String @default("") @db.VarChar(64) // 내용 변경 감지용 (SHA-256 등)
 
-  create_dt       DateTime  @default(now())
-  recommend_cnt   Int       @default(0)
-  is_deleted      Int       @default(0) @db.TinyInt
-  updated_dt      DateTime  @updatedAt
-  last_editor_name  String?
+  original_url  String? @db.VarChar(500)
+  recommend_cnt Int     @default(0)
+  is_deleted    Int     @default(0) @db.TinyInt
 
-  user            Users     @relation("Boards/User", fields: [nickname], references: [nickname], onDelete: Cascade)
+  create_dt        DateTime @default(now())
+  updated_dt       DateTime @updatedAt
+  last_editor_name String?
 
-  histories       BoardHistory[]
-  likes           BoardLike[]
-  comments Comment[] @relation("Comment/Board")
-  
+  // 관계
+  user      Users           @relation("Boards/User", fields: [nickname], references: [nickname], onDelete: Cascade)
+  tags      BoardTag[]
+  issues    DocumentIssue[]
+  histories BoardHistory[]
+  likes     BoardLike[]
+  comments  Comment[]       @relation("Comment/Board")
+
+  @@index([category, status])
   @@index([id, type])
   @@index([type, create_dt])
   @@index([is_deleted])
   @@map("board")
 }
 
-model BoardHistory {
-  id              BigInt   @id @default(autoincrement())
-  board_id        BigInt
+model GuideDraft {
+  id       BigInt        @id @default(autoincrement())
+  category GuideCategory @default(CONTEXT)
+  status   DraftStatus   @default(PENDING)
 
-  prev_title      String   @db.VarChar(200)
+  title              String  @db.VarChar(200)
+  original_url       String? @db.VarChar(500)
+  original_content   String? @db.Text // 크롤링된 원문
+  translated_content Json? // AI 번역/유저 수정본
+
+  is_formatted   Boolean @default(false) // GPT 포매팅 완료 여부
+  approval_count Int     @default(0)
+  current_hash   String  @default("") @db.VarChar(64) // 수정 시 리셋 판단용 해시
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  author_id BigInt?
+  author    Users?          @relation(fields: [author_id], references: [character_id], onDelete: SetNull)
+  approvals DraftApproval[]
+
+  @@map("guide_draft")
+}
+
+// ---------------------------------------------------------------------------
+// Board 연관 레거시 모델들
+// ---------------------------------------------------------------------------
+
+model BoardHistory {
+  id       BigInt @id @default(autoincrement())
+  board_id BigInt
+
+  prev_title String @db.VarChar(200)
 
   // 당시 원본 JSON
-  prev_content    Json
+  prev_content Json
 
   editor_nickname String @db.VarChar(64)
 
-  edit_dt         DateTime @default(now())
+  edit_dt DateTime @default(now())
 
-  board           Board    @relation(fields: [board_id], references: [id], onDelete: Cascade)
+  board Board @relation(fields: [board_id], references: [id], onDelete: Cascade)
 
   @@index([board_id])
   @@map("board_history")
 }
 
-
 model File {
-  id            BigInt       @id @default(autoincrement())
-  file_md5      String       @unique
+  id            BigInt     @id @default(autoincrement())
+  file_md5      String     @unique
   original_name String?
   extension     String
   size          BigInt
   s3_key        String
-  status        FileStatus   @default(uploaded)
-  need_optimize Boolean      @default(true)
-  ref_count     Int          @default(0)
-  created_at    DateTime     @default(now())
-  updated_at    DateTime     @updatedAt
+  status        FileStatus @default(uploaded)
+  need_optimize Boolean    @default(true)
+  ref_count     Int        @default(0)
+  created_at    DateTime   @default(now())
+  updated_at    DateTime   @updatedAt
 
-  sessions      UploadSession[]
+  sessions UploadSession[]
 
   @@map("file")
 }
@@ -124,28 +189,27 @@ model UploadSession {
   created_at    DateTime     @default(now())
   updated_at    DateTime     @updatedAt
 
+  user_id BigInt
+  user    Users  @relation(fields: [user_id], references: [character_id], onDelete: Cascade)
 
-  user_id       BigInt
-  user          Users  @relation(fields: [user_id], references: [character_id], onDelete: Cascade)
-
-
-  file_id       BigInt?
-  file          File?        @relation(fields: [file_id], references: [id], onDelete: SetNull)
+  file_id BigInt?
+  file    File?   @relation(fields: [file_id], references: [id], onDelete: SetNull)
 
   @@index([file_md5, status, created_at])
   @@index([file_id])
-  @@index([user_id]) 
-  @@map("uploadSession") 
+  @@index([user_id])
+  @@map("uploadSession")
 }
 
 model BoardLike {
-  id Int @id @default(autoincrement())
-  user_id BigInt
-  board_id BigInt
+  id         Int      @id @default(autoincrement())
+  user_id    BigInt
+  board_id   BigInt
   created_at DateTime @default(now())
 
-  user Users @relation(fields: [user_id],references: [character_id],onDelete: Cascade)
-  board Board @relation(fields: [board_id],references: [id],onDelete: Cascade)
+  user  Users @relation(fields: [user_id], references: [character_id], onDelete: Cascade)
+  board Board @relation(fields: [board_id], references: [id], onDelete: Cascade)
+
   @@unique([user_id, board_id])
   @@index([board_id])
   @@index([user_id])
@@ -153,17 +217,106 @@ model BoardLike {
 }
 
 model Comment {
-  id BigInt @id  @default(autoincrement())
-  user_id BigInt
-  board_id BigInt
-  content String @db.Text
+  id         BigInt   @id @default(autoincrement())
+  user_id    BigInt
+  board_id   BigInt
+  content    String   @db.Text
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  is_deleted Int @default(0) @db.TinyInt
+  is_deleted Int      @default(0) @db.TinyInt
 
-  user Users @relation("Comment/User",fields: [user_id],references: [character_id],onDelete: Cascade)
-  board Board @relation("Comment/Board",fields: [board_id],references: [id],onDelete: Cascade)
+  user  Users @relation("Comment/User", fields: [user_id], references: [character_id], onDelete: Cascade)
+  board Board @relation("Comment/Board", fields: [board_id], references: [id], onDelete: Cascade)
 
   @@index([board_id, created_at])
   @@map("comment")
+}
+
+// ---------------------------------------------------------------------------
+// 3. 검증 및 자동화 로직 모델 (Human-in-the-Loop & Patch Tracking)
+// ---------------------------------------------------------------------------
+
+model DraftApproval {
+  id           BigInt   @id @default(autoincrement())
+  draft_id     BigInt
+  user_id      BigInt
+  version_hash String   @default("") @db.VarChar(64) // 승인 당시의 해시 (Draft의 current_hash와 비교)
+  created_at   DateTime @default(now())
+
+  draft GuideDraft @relation(fields: [draft_id], references: [id], onDelete: Cascade)
+  user  Users      @relation(fields: [user_id], references: [character_id], onDelete: Cascade)
+
+  @@unique([draft_id, user_id])
+  @@map("draft_approval")
+}
+
+model Tag {
+  id              BigInt  @id @default(autoincrement())
+  name            String  @unique @db.VarChar(100)
+  type            String? @db.VarChar(50) // SHIP, MODULE 등
+  is_ai_generated Boolean @default(false)
+
+  board_tags    BoardTag[]
+  patch_impacts PatchImpact[]
+
+  @@map("tag")
+}
+
+model BoardTag {
+  board_id BigInt
+  tag_id   BigInt
+
+  board Board @relation(fields: [board_id], references: [id], onDelete: Cascade)
+  tag   Tag   @relation(fields: [tag_id], references: [id], onDelete: Cascade)
+
+  @@id([board_id, tag_id])
+  @@map("board_tag")
+}
+
+model PatchNoteHub {
+  id           String      @id @db.VarChar(100)
+  last_anchor  String?     @db.VarChar(200)
+  updated_at   DateTime    @updatedAt
+
+  notes        PatchNote[]
+
+  @@map("patch_note_hub")
+}
+
+model PatchNote {
+  id           String        @id @db.VarChar(200) 
+  hub_id       String        @db.VarChar(100)
+  title        String        @db.VarChar(200) 
+  patch_date   String?       @db.VarChar(50) // YYYY-MM-DD 형식의 추출된 패치 날짜
+  content      String        @db.Text 
+  published_at DateTime      @default(now())
+  
+  hub          PatchNoteHub  @relation(fields: [hub_id], references: [id], onDelete: Cascade)
+  impacts      PatchImpact[]
+
+  @@map("patch_note")
+}
+
+model PatchImpact {
+  id       BigInt @id @default(autoincrement())
+  patch_id String
+  tag_id   BigInt
+  reason   String @db.Text // AI가 판단한 영향 근거
+
+  patch PatchNote @relation(fields: [patch_id], references: [id], onDelete: Cascade)
+  tag   Tag       @relation(fields: [tag_id], references: [id], onDelete: Cascade)
+
+  @@map("patch_impact")
+}
+
+model DocumentIssue {
+  id         BigInt      @id @default(autoincrement())
+  board_id   BigInt
+  reason     String      @db.Text // "Patch v25.01: Heavy Missile damage changed"
+  status     IssueStatus @default(OPEN)
+  created_at DateTime    @default(now())
+
+  board Board @relation(fields: [board_id], references: [id], onDelete: Cascade)
+
+  @@map("document_issue")
 }
