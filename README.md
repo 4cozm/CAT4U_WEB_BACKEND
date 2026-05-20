@@ -16,6 +16,54 @@
 
 본 시스템은 **비동기 분산 메시징(SQS)**, **LLM 제어 통합(Gemini)**, 그리고 **하이브리드 데이터베이스 저장 구조(MySQL + SQLite)**를 기반으로 설계되어 결합도를 낮추고 데이터 신뢰성과 인프라 비용 효율성을 관리합니다.
 
+### 1.0 전체 시스템 구성도 (System Overview)
+```mermaid
+graph LR
+    subgraph Client["클라이언트 레이어"]
+        FE["Next.js Frontend"]
+    end
+
+    subgraph Backend["백엔드 레이어 (Express / PM2 Cluster)"]
+        API["REST API Server"]
+        CRON["Cron Job\n(boardClean)"]
+        AI["AI Agent\n(Gemini SDK)"]
+    end
+
+    subgraph Storage["데이터 저장소"]
+        MYSQL[("MySQL\n(게시글/유저/패치)")]
+        REDIS[("Redis\n(분산 락 / 캐시)")]
+        SQLITE[("SQLite SDE\n(정적 게임 데이터)")]
+    end
+
+    subgraph AWS["AWS 인프라"]
+        S3["S3\n(incoming / optimized)"]
+        SQS["SQS"]
+        LAMBDA["Lambda\n(FFmpeg 트랜스코딩)"]
+        CF["CloudFront CDN"]
+    end
+
+    subgraph Notification["알림 레이어"]
+        DISCORD["Discord Bot / Webhook"]
+    end
+
+    FE -->|REST| API
+    API --> MYSQL
+    API --> REDIS
+    API -->|Presigned URL 발급| FE
+    FE -->|직접 업로드| S3
+    S3 -->|ObjectCreated 이벤트| SQS
+    SQS --> LAMBDA
+    LAMBDA -->|status 갱신| MYSQL
+    LAMBDA -->|optimized 이동| S3
+    S3 --> CF
+    CRON -->|Redis SET NX| REDIS
+    CRON --> MYSQL
+    AI <-->|Function Calling| SQLITE
+    AI --> MYSQL
+    AI -->|SQS 발행| SQS
+    SQS --> DISCORD
+```
+
 ### 1.1 AI 가이드 생성 및 패치 영향도 추적 파이프라인 (6단계 Loop)
 ```mermaid
 graph TD
@@ -64,7 +112,26 @@ sequenceDiagram
 ### 🚀 Case 1. PM2 클러스터 환경의 Cron 배치 레이스 컨디션 및 DB 커넥션 병목 해결
 * **배경 & 문제**:  
   멀티 코어 자원을 활용하기 위해 PM2를 `Cluster Mode`로 실행한 후, 서버 시작 시 등록되는 **정기 데이터 정리 배치 Job**(`boardClean.js`)이 개별 인스턴스에서 각각 실행되는 레이스 컨디션(Race Condition)이 발생했습니다. 초기에는 이를 제어하기 위해 MySQL의 명명된 잠금(`GET_LOCK`)을 적용하였으나, **Prisma ORM의 커넥션 풀(Connection Pool) 특성과 충돌하는 현상**이 나타났습니다.
-  
+
+  **[문제 구조] MySQL GET_LOCK + Prisma Connection Pool 세션 불일치**
+  ```mermaid
+  sequenceDiagram
+      participant P1 as PM2 인스턴스 A
+      participant P2 as PM2 인스턴스 B
+      participant Pool as Prisma Connection Pool
+      participant DB as MySQL
+
+      P1->>Pool: 커넥션 요청 → conn-1 할당
+      Pool->>DB: GET_LOCK('cron_lock') via conn-1 ✅
+      Note over P2: 동시에 배치 시작
+      P2->>Pool: 커넥션 요청 → conn-2 할당
+      Pool->>DB: GET_LOCK('cron_lock') via conn-2 → 대기
+      P1->>Pool: RELEASE_LOCK 요청 → conn-3 할당 (풀 재할당)
+      Pool->>DB: RELEASE_LOCK via conn-3 ❌ (conn-1이 아님)
+      Note over DB: 락 해제 실패(0 반환)<br/>conn-1 커넥션 영구 점유
+      Note over Pool: 커넥션 고갈 → API 응답 지연
+  ```
+
   MySQL `GET_LOCK`은 락을 획득한 세션(DB 커넥션) 내에서만 정상적으로 유지 및 해제가 가능합니다. 하지만 Prisma ORM은 쿼리 시마다 임의의 커넥션을 풀에서 할당하므로, 락을 잡은 커넥션과 해제를 시도하는 커넥션이 일치하지 않을 수 있어 `RELEASE_LOCK`이 실패(0 반환)하고 락이 해제되지 않는 문제가 관측되었습니다. 이로 인해 정기 배치 실행 시마다 데이터베이스 커넥션이 누수 및 고갈되어 실시간 API 응답이 지연되는 현상을 초래했습니다.
 
 * **기술적 해결 전략**:  
@@ -98,6 +165,24 @@ sequenceDiagram
 * **배경 & 문제**:  
   사용되지 않는 S3 리소스를 주기적으로 자동 선별하여 정리하기 위해 참조 카운팅(Reference Counting) 메커니즘을 적용했습니다.  
   그러나 삭제 보정(Pruning) 과정에서 작성된 기존 로직은 참조 횟수가 감소한 특정 미디어를 선별하여 확인하기 위해 **`file` 테이블 전체를 스캔(`WHERE ref_count < 0`)하는 동작 구조**를 가지고 있었습니다. 이 방식은 대용량 파일 메타데이터가 쌓일수록 데이터베이스에 가해지는 CPU 부하와 락 경합을 선형적으로 증가시켜 수정 및 쓰기 요청의 처리 효율을 저하시켰습니다.
+
+  **[Before / After] 쿼리 탐색 범위 비교**
+  ```mermaid
+  graph LR
+      subgraph Before["❌ 개선 전: 전체 테이블 풀 스캔"]
+          direction LR
+          ALL["file 테이블 전체 행\n(N개 레코드)"]
+          COND1["WHERE ref_count < 0"]
+          ALL -->|N개 전부 순회| COND1
+      end
+
+      subgraph After["✅ 개선 후: 변경 대상 MD5 집합으로 범위 한정"]
+          direction LR
+          DIFF["이번 수정에서 제거된 MD5 목록\n(removed[ ])"]
+          COND2["WHERE file_md5 IN removed\nAND ref_count < 0"]
+          DIFF -->|k개만 대상 (k << N)| COND2
+      end
+  ```
 
 * **기술적 해결 전략**:  
   도메인 모델의 비즈니스적 특성상 `ref_count`가 음수가 될 수 있는 레코드는 **'이번 트랜잭션 과정에서 변경되어 본문에서 제외된 대상(MD5)'**으로 한정된다는 점에 착안했습니다. 이에 따라 탐색 범위를 전체 테이블이 아닌 명확히 바뀐 파일 대상으로 좁히도록 쿼리를 최적화했습니다.
@@ -166,7 +251,7 @@ sequenceDiagram
 
 ## 4. 백엔드 기술 스택 (Tech Stack)
 
-| 구분 | 기술 기술 | 역할 및 상세 설명 |
+| 구분 | 기술 | 역할 및 상세 설명 |
 | :--- | :--- | :--- |
 | **Runtime & Core** | **Node.js v20+, Express v5.0** | 비동기 I/O 기반의 성능 효율 중심 API 서버 구동 |
 | **ORM & DB** | **Prisma ORM, MySQL 8.0, better-sqlite3** | 관계형 DB 스키마 관리, 트랜잭션 제어 및 로컬 SQLite 게임 정적 데이터 팩트체킹 |
