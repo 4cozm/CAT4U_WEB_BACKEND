@@ -26,12 +26,15 @@
         "@azure/identity": "^4.13.0",
         "@azure/keyvault-secrets": "^4.10.0",
         "@blocknote/xl-ai": "^0.45.0",
+        "@google/generative-ai": "^0.24.1",
         "@prisma/adapter-mariadb": "^7.1.0",
         "@prisma/adapter-pg": "^7.1.0",
-        "@prisma/client": "^7.1.0",
+        "@prisma/client": "^7.4.1",
         "ai": "^5.0.118",
         "axios": "^1.11.0",
         "bcrypt": "^6.0.0",
+        "better-sqlite3": "^12.6.2",
+        "cheerio": "^1.2.0",
         "connect-redis": "^9.0.0",
         "cookie-parser": "^1.4.7",
         "cors": "^2.8.5",
@@ -39,6 +42,7 @@
         "discord.js": "^14.21.0",
         "dotenv": "^16.6.1",
         "express": "^5.1.0",
+        "fuse.js": "^7.1.0",
         "jsdoc": "^4.0.4",
         "jsonwebtoken": "^9.0.2",
         "mariadb": "^3.4.5",
@@ -47,9 +51,11 @@
         "pg": "^8.16.3",
         "prettier": "^3.6.2",
         "redis": "^5.8.0",
+        "unbzip2-stream": "^1.4.3",
         "uuid": "^11.1.0",
         "winston": "^3.17.0",
-        "winston-daily-rotate-file": "^5.0.0"
+        "winston-daily-rotate-file": "^5.0.0",
+        "zod": "^4.3.6"
     },
     "repository": {
         "type": "git",
@@ -61,13 +67,13 @@
         "application"
     ],
     "devDependencies": {
-        "eslint": "^8.57.1",
+        "eslint": "^10.0.2",
         "eslint-config-prettier": "^10.1.5",
         "eslint-plugin-prettier": "^5.5.1",
         "husky": "^8.0.3",
         "lint-staged": "^16.1.2",
         "nodemon": "^3.1.10",
-        "prisma": "^7.1.0"
+        "prisma": "^7.4.1"
     },
     "lint-staged": {
         "**/*.{js,jsx,ts,tsx}": [

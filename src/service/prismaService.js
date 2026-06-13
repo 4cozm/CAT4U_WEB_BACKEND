@@ -39,6 +39,9 @@ export async function connectWithRetry(shutdown = false, retries = 3, delay = 20
                 spinner.succeed("DB 연결 성공");
                 return prisma;
             } catch (e) {
+                // 전체 에러/cause 체인을 기록. spinner 문구는 e.message만 보여줘서
+                // 드라이버 어댑터의 근본 원인(예: 인증 실패)이 가려지는 걸 방지한다.
+                logger().error(e);
                 spinner.warn(`DB 연결 실패 (${i + 1}/${retries}) - ${e.message}`);
                 await new Promise(r => setTimeout(r, delay));
                 spinner.start();
